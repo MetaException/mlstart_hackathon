@@ -1,0 +1,69 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="apiclient.Pages.MainPage">
+
+    <ContentPage.MenuBarItems>
+        <MenuBarItem Text="Файл">
+            <MenuFlyoutItem Text="Открыть" Command="{Binding OpenFileCommand}"/>
+        </MenuBarItem>
+    </ContentPage.MenuBarItems>
+
+    <Grid VerticalOptions="FillAndExpand">
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="0.3*"/>
+            <ColumnDefinition Width="0.7*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Stroke="DarkGray" StrokeThickness="0.5"  Grid.Column="0">
+            <CollectionView Margin="1,0,1,0" ItemSizingStrategy="MeasureFirstItem" SelectedItem="{Binding SelectedItem}" SelectionChangedCommandParameter="{Binding SelectedItem, Source={RelativeSource Self}}" SelectionChangedCommand="{Binding SelectionChangedCommand}" ItemsSource="{Binding Imgs}" SelectionMode="Single" ItemsLayout="VerticalGrid,4">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Image Margin="5"
+                              Aspect="AspectFill"
+                              Source="{Binding ItemImageSource}"/>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Border>
+
+        <Border Stroke="DarkGray" StrokeThickness="0.5"  Grid.Column="1">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="0.7*"/>
+                    <RowDefinition Height="0.3*"/>
+                </Grid.RowDefinitions>
+
+                <Image Grid.Row="0" Source="{Binding ImgSource}" Aspect="AspectFit"/>
+
+                <Border Stroke="DarkGray" StrokeThickness="0.5"  Grid.Row="1">
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="0.3*"/>
+                            <ColumnDefinition Width="0.3*"/>
+                            <ColumnDefinition Width="0.3*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <HorizontalStackLayout HorizontalOptions="CenterAndExpand" Grid.Column="0">
+                            <Label FontSize="Medium" VerticalOptions="CenterAndExpand" Text="Статус:"/>
+                            <Label FontSize="Medium" Margin="20,0,0,0" TextColor="{Binding StatusColor}" VerticalOptions="CenterAndExpand" Text="{Binding ConnectionStatus}"/>
+                        </HorizontalStackLayout>
+                        <Button IsEnabled="{Binding IsUploadButtonEnabled}" VerticalOptions="CenterAndExpand" IsVisible="{Binding IsUploadButtonVisible}" HorizontalOptions="CenterAndExpand" Grid.Column="1" Text="Загрузить изображение" Command="{Binding UploadButtonClickedCommand}" />
+
+                        <StackLayout IsVisible="{Binding IsImageDetailsVisible}" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand" Grid.Column="2">
+                            <Label Text="{Binding ImageWidth}"/>
+                            <Label Text="{Binding ImageHeight}"/>
+                            <Label Text="{Binding ImageChannels}"/>
+                        </StackLayout>
+
+                    </Grid>
+                </Border>
+                
+
+
+            </Grid>
+        </Border>
+
+    </Grid>
+</ContentPage>

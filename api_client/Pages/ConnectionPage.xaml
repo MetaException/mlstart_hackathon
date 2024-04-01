@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="apiclient.Pages.ConnectionPage">
+
+    <Shell.TitleView>
+        <Label Text="Подключение" FontSize="Title" VerticalTextAlignment="Center" HorizontalTextAlignment="Center" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand" />
+    </Shell.TitleView>
+
+    <ScrollView>
+
+        <VerticalStackLayout
+            VerticalOptions="CenterAndExpand"
+            Padding="30,0"
+            Spacing="25">
+
+            <Label x:Name="welcomeLabel" Text="{Binding WelcomeLabelText}" FontSize="Small" />
+            <Label x:Name="ErrorLabel" Text="{Binding ErrorLabel}" IsVisible="{Binding IsErrorLabelEnabled}" TextColor="Red" FontSize="Small" />
+
+            <Entry
+                x:Name="LoginEntry"
+                MaxLength="20"
+                Placeholder="Ip-Адрес"
+                Text="{Binding Ip}" />
+
+            <Entry
+                x:Name="PasswordEntry"
+                MaxLength="100"
+                Placeholder="Port"
+                Text="{Binding Port}" />
+
+            <HorizontalStackLayout
+                Spacing="15"
+                HorizontalOptions="CenterAndExpand">
+
+                <Button
+                    x:Name="ConnectBtn"
+                    Text="Подключиться"
+                    Command="{Binding ConnectCommand}"
+                    HorizontalOptions="Fill"
+                    IsEnabled="{Binding IsConnectButtonEnabled}" />
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
