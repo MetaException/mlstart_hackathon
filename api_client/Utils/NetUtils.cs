@@ -110,24 +110,29 @@ public class NetUtils
         return false;
     }
 
-    public async Task<ImageInfo> SendImageAsync(Stream fileStream, string fileName)
+    public async Task<ImageInfo> SendImageAsync(Stream fileStream, string filePath)
     {
         try
         {
             var content = new MultipartFormDataContent
             {
-                { new StreamContent(fileStream), "image", fileName}
+                { new StreamContent(fileStream), "image", filePath}
             };
 
             var response = await _client.PostAsync(ApiLinks.DataLink, content);
 
-            return await response.Content.ReadFromJsonAsync<ImageInfo>();
+            var imageInfo = await response.Content.ReadFromJsonAsync<ImageInfo>();
+
+            if (imageInfo is null)
+                throw new ArgumentNullException(nameof(imageInfo), "Сайт вернул null");
+
+            return imageInfo;
         }
         catch (Exception ex)
         {
-            Log.Error(ex.Message);
+            Log.Error($"Произошла ошибка отправки изображения по пути {filePath}: {ex.Message}");
+            throw;
         }
-        return null;
     }
 
     public bool SetIpAndPort(string ip, string port)

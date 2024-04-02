@@ -1,9 +1,9 @@
-﻿using apiclient.Model;
+﻿using api_client.Utils;
+using apiclient.Model;
 using apiclient.Utils;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
-using Serilog;
 
 namespace apiclient.ViewModels;
 
@@ -11,8 +11,8 @@ public partial class MainPageViewModel : ObservableObject
 {
     public class Item
     {
-        public ImageSource ItemImageSource { get; set; }
-        public string FilePath { get; set; }
+        public ImageSource Thumbnail { get; set; }
+        public FileResult File { get; set; }
         public ImageInfo ImageInfo { get; set; }
     }
 
@@ -40,9 +40,6 @@ public partial class MainPageViewModel : ObservableObject
     private Item _selectedItem;
 
     [ObservableProperty]
-    private bool _isUploadButtonVisible = false;
-
-    [ObservableProperty]
     private bool _isImageDetailsVisible = false;
 
     [ObservableProperty]
@@ -52,7 +49,7 @@ public partial class MainPageViewModel : ObservableObject
     private Color _statusColor;
 
     [ObservableProperty]
-    private bool _isUploadButtonEnabled;
+    private bool _isUploadButtonEnabled = false;
 
     public RelayCommand UploadButtonClickedCommand { get; }
 
@@ -81,7 +78,7 @@ public partial class MainPageViewModel : ObservableObject
             {
                 StatusColor = Colors.Green;
                 ConnectionStatus = "Подключено";
-                IsUploadButtonEnabled = true;
+                IsUploadButtonEnabled = SelectedItem != null;
             }
             else
             {
@@ -95,9 +92,25 @@ public partial class MainPageViewModel : ObservableObject
 
     private async Task SelectionChangedHandler(Item item)
     {
-        ImgSource = ImageSource.FromFile(item.FilePath);
+        if (item == null)
+        {
+            ImgSource = null;
+            IsUploadButtonEnabled = false;
+            IsImageDetailsVisible = false;
+            return;
+        }
 
-        if (IsImageDetailsVisible = item.ImageInfo is not null)
+        try
+        {
+            ImgSource = await FileUtils.OpenImageAsync(item.File);
+        }
+        catch
+        {
+            Imgs.Remove(item); // Удаляем файл, который не получилось открыть
+            return;
+        }
+
+        if (IsImageDetailsVisible = item.ImageInfo != null)
         {
             ImageWidth = $"Ширина: {item.ImageInfo.width}";
             ImageHeight = $"Высота: {item.ImageInfo.height}";
@@ -107,32 +120,26 @@ public partial class MainPageViewModel : ObservableObject
 
     private async Task OpenFile()
     {
-        var results = await FilePicker.PickMultipleAsync(new PickOptions
-        {
-            PickerTitle = "Выбирите изображения",
-            FileTypes = FilePickerFileType.Images
-        });
+        var files = await FileUtils.OpenFilesByDialog();
 
-        if (!results.Any())
+        if (!files.Any())
             return;
 
-        Log.Information($"Opened {results.Count()} files");
-
-        foreach (var file in results)
+        foreach (var file in files)
         {
-            Imgs.Add(new Item { ItemImageSource = ImageSource.FromFile(file.FullPath), FilePath = file.FullPath}); //TODO: сжимать фото для миниатюр
+            var image = await FileUtils.OpenImageAsync(file);
+            Imgs.Add(new Item
+            {
+                Thumbnail = FileUtils.GenerateThumbnail(image, 500, 500), // TODO: Получать размеры автоматически
+                File = file
+            });
         }
 
-        SelectedItem = Imgs[^1];
-
-        IsUploadButtonVisible = true;
+        SelectedItem = Imgs[^1]; // Устанавливаем активный элемент - последний открытый
     }
 
     private async Task UploadButtonClicked()
     {
-        if (SelectedItem is null)
-            return;
-
         bool isConnected = await _netUtils.CheckServerConnection();
 
         if (!isConnected)
@@ -145,13 +152,10 @@ public partial class MainPageViewModel : ObservableObject
 
         try
         {
-            var fileStream = File.OpenRead(SelectedItem.FilePath); //TODO: Вынести работу с файлами в отедельный класс
-
-            var details = await _netUtils.SendImageAsync(fileStream, Path.GetFileName(SelectedItem.FilePath));
-
-            if (details is null)
+            ImageInfo details;
+            using (var fileStream = await FileUtils.OpenFileAsync(SelectedItem.File))
             {
-                throw new ArgumentNullException();
+                details = await _netUtils.SendImageAsync(fileStream, Path.GetFileName(SelectedItem.File.FullPath));
             }
 
             ImageWidth = $"Ширина: {details.width}";
@@ -161,9 +165,13 @@ public partial class MainPageViewModel : ObservableObject
             SelectedItem.ImageInfo = details;
             IsImageDetailsVisible = true;
         }
-        catch (Exception ex)
+        catch (IOException)
         {
-            Log.Error(ex.Message);
+            Imgs.Remove(SelectedItem); // Удаляем файл, который не получилось открыть. Удаление вызовет SelectionChangedHandler
+        }
+        catch (Exception)
+        {
+            // Проверить интернет, вывести ошибку на экран?? 
         }
     }
 }
