@@ -1,6 +1,7 @@
 ﻿using api_client.Utils;
 using apiclient.Model;
 using apiclient.Utils;
+using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -22,7 +23,7 @@ public partial class MainPageViewModel : ObservableObject
     private bool _isInternetErrorVisible;
 
     [ObservableProperty]
-    private ImageSource _imgSource;
+    private MediaSource _currentVideoSource;
 
     [ObservableProperty]
     private string _imageWidth;
@@ -94,7 +95,7 @@ public partial class MainPageViewModel : ObservableObject
     {
         if (item == null)
         {
-            ImgSource = null;
+            CurrentVideoSource = null;
             IsUploadButtonEnabled = false;
             IsImageDetailsVisible = false;
             return;
@@ -102,7 +103,7 @@ public partial class MainPageViewModel : ObservableObject
 
         try
         {
-            ImgSource = await FileUtils.OpenImageAsync(item.File);
+            CurrentVideoSource = await FileUtils.OpenVideoAsync(item.File);
         }
         catch
         {
@@ -127,10 +128,9 @@ public partial class MainPageViewModel : ObservableObject
 
         foreach (var file in files)
         {
-            var image = await FileUtils.OpenImageAsync(file);
             Imgs.Add(new Item
             {
-                Thumbnail = FileUtils.GenerateThumbnail(image, 500, 500), // TODO: Получать размеры автоматически
+                Thumbnail = await FileUtils.GetVideoThumbnailsAsync(file, 640, 360), //FileUtils.GenerateVideoThumbnail(file.FullPath),
                 File = file
             });
         }
@@ -149,6 +149,8 @@ public partial class MainPageViewModel : ObservableObject
             IsUploadButtonEnabled = false;
             return;
         }
+
+        throw new NotImplementedException("Не понятно в какой форме нужно загружать видео");
 
         try
         {

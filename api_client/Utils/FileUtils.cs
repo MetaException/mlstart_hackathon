@@ -1,4 +1,7 @@
-﻿using Serilog;
+﻿using CommunityToolkit.Maui.Views;
+using Serilog;
+using Windows.Media.Editing;
+using Windows.Storage;
 
 namespace api_client.Utils;
 
@@ -8,8 +11,8 @@ public static class FileUtils
     {
         var results = await FilePicker.PickMultipleAsync(new PickOptions
         {
-            PickerTitle = "Выбирите изображения",
-            FileTypes = FilePickerFileType.Images
+            PickerTitle = "Выбирите видео",
+            FileTypes = FilePickerFileType.Videos
         });
 
         if (results.Any())
@@ -18,6 +21,11 @@ public static class FileUtils
         }
 
         return results;
+    }
+
+    public static async Task<MediaSource> OpenVideoAsync(FileResult file)
+    {
+        return MediaSource.FromFile(file.FullPath);  
     }
 
     public static async Task<ImageSource> OpenImageAsync(FileResult file)
@@ -39,7 +47,26 @@ public static class FileUtils
         }
     }
 
-    public static ImageSource GenerateThumbnail(ImageSource original, int width, int height)
+    public static async Task<ImageSource> GetVideoThumbnailsAsync(FileResult file, int width, int height)
+    {
+        TimeSpan getFrameInTime = new TimeSpan(0, 0, 1);
+
+        var yourClip = await MediaClip.CreateFromFileAsync(await StorageFile.GetFileFromPathAsync(file.FullPath));
+        var composition = new MediaComposition();
+
+        composition.Clips.Add(yourClip);
+
+        var yourImageStream = await composition.GetThumbnailAsync(
+           getFrameInTime,
+           Convert.ToInt32(width),
+           Convert.ToInt32(height),
+           VideoFramePrecision.NearestFrame);
+
+        return ImageSource.FromStream(() => yourImageStream.AsStream());
+
+    }
+
+    public static ImageSource GenerateImageThumbnail(ImageSource original, int width, int height)
     {
         var image = new Image { Source = original };
         image.Aspect = Aspect.AspectFill;

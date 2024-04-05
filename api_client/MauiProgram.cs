@@ -2,6 +2,7 @@
 using apiclient.Pages;
 using apiclient.Utils;
 using apiclient.ViewModels;
+using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
@@ -17,6 +18,7 @@ namespace apiclient
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>()
+                .UseMauiCommunityToolkitMediaElement()
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
