@@ -22,7 +22,7 @@
                     <DataTemplate>
                         <Image Margin="5"
                               Aspect="AspectFill"
-                              Source="{Binding ItemImageSource}"/>
+                              Source="{Binding Thumbnail}"/>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
@@ -49,7 +49,7 @@
                             <Label FontSize="Medium" VerticalOptions="CenterAndExpand" Text="Статус:"/>
                             <Label FontSize="Medium" Margin="20,0,0,0" TextColor="{Binding StatusColor}" VerticalOptions="CenterAndExpand" Text="{Binding ConnectionStatus}"/>
                         </HorizontalStackLayout>
-                        <Button IsEnabled="{Binding IsUploadButtonEnabled}" VerticalOptions="CenterAndExpand" IsVisible="{Binding IsUploadButtonVisible}" HorizontalOptions="CenterAndExpand" Grid.Column="1" Text="Загрузить изображение" Command="{Binding UploadButtonClickedCommand}" />
+                        <Button IsEnabled="{Binding IsUploadButtonEnabled}" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand" Grid.Column="1" Text="Загрузить изображение" Command="{Binding UploadButtonClickedCommand}" />
 
                         <StackLayout IsVisible="{Binding IsImageDetailsVisible}" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand" Grid.Column="2">
                             <Label Text="{Binding ImageWidth}"/>
