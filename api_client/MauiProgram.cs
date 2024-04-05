@@ -1,4 +1,5 @@
-﻿using apiclient.Pages;
+﻿using api_client.Configuration;
+using apiclient.Pages;
 using apiclient.Utils;
 using apiclient.ViewModels;
 using Microsoft.Extensions.Logging;
@@ -28,6 +29,9 @@ namespace apiclient
 
             CreateLogger();
 
+            // Позволит заменять конфигурацию прямо на ходу в коде
+            builder.Services.AddSingleton<Configuration>(Configuration.SetupConfiguration());
+
             builder.Services.AddSingleton<NetUtils>();
 
             builder.Services.AddTransient<ConnectionPage>();
@@ -46,7 +50,7 @@ namespace apiclient
         {
             Log.Logger = new LoggerConfiguration()
                 .Enrich.FromLogContext()
-                .Enrich.WithProperty("ClientHash", СlientId) 
+                .Enrich.WithProperty("ClientHash", СlientId)
 
                 .WriteTo.Logger(l => l
                     .Filter.ByIncludingOnly(e => e.Level == LogEventLevel.Debug)
