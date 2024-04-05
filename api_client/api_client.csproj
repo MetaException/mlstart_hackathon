@@ -71,18 +71,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Compile Update="Pages\ConnectionPage.xaml.cs">
-	    <DependentUpon>ConnectionPage.xaml</DependentUpon>
-	  </Compile>
 	  <Compile Update="Pages\MainPage.xaml.cs">
 	    <DependentUpon>MainPage.xaml</DependentUpon>
 	  </Compile>
 	</ItemGroup>
 
 	<ItemGroup>
-	  <MauiXaml Update="Pages\ConnectionPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </MauiXaml>
 	  <MauiXaml Update="Pages\MainPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>

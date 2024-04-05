@@ -1,4 +1,5 @@
-﻿using apiclient.Model;
+﻿using api_client.Configuration;
+using apiclient.Model;
 using Serilog;
 using System.Net.Http.Json;
 
@@ -7,11 +8,17 @@ namespace apiclient.Utils;
 public class NetUtils
 {
     private readonly HttpClientHandler _handler;
+    private readonly Configuration _settings;
+
     private HttpClient _client;
 
-    public NetUtils()
+    public NetUtils(Configuration settings)
     {
         _handler = new HttpClientHandler();
+
+        _settings = settings;
+
+        SetIpAndPort(_settings.RootSettings.API.Host, _settings.RootSettings.API.Port); // TODO: учесть что в конфиге могут стоять некорректные значения
     }
 
     public async Task<bool> CheckServerConnection()

@@ -36,9 +36,6 @@ namespace apiclient
 
             builder.Services.AddSingleton<NetUtils>();
 
-            builder.Services.AddTransient<ConnectionPage>();
-            builder.Services.AddTransient<ConnectionPageViewModel>();
-
             builder.Services.AddTransient<MainPage>();
             builder.Services.AddTransient<MainPageViewModel>();
 

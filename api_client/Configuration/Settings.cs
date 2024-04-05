@@ -31,5 +31,5 @@ public class LoggingSettings
 public class ApiSettings
 {
     public string Host { get; set; } = "127.0.0.1";
-    public int Port { get; set; } = 8000;
+    public string Port { get; set; } = "8000";
 }
