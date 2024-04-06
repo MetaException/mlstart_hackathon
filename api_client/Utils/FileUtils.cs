@@ -1,7 +1,10 @@
-﻿using CommunityToolkit.Maui.Views;
+﻿using CommunityToolkit.Maui.Storage;
+using CommunityToolkit.Maui.Views;
 using Serilog;
+using System.IO;
 using Windows.Media.Editing;
 using Windows.Storage;
+using Windows.Storage.Pickers;
 
 namespace api_client.Utils;
 
@@ -21,6 +24,11 @@ public static class FileUtils
         }
 
         return results;
+    }
+
+    public static async Task SaveFileByDialog(Stream stream)
+    {
+        var a = await FileSaver.Default.SaveAsync("test.avi", stream);
     }
 
     public static async Task<MediaSource> OpenVideoAsync(FileResult file)

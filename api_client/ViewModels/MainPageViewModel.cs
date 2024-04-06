@@ -1,4 +1,5 @@
-﻿using api_client.Utils;
+﻿using api_client.Model;
+using api_client.Utils;
 using apiclient.Model;
 using apiclient.Utils;
 using CommunityToolkit.Maui.Views;
@@ -14,7 +15,8 @@ public partial class MainPageViewModel : ObservableObject
     {
         public ImageSource Thumbnail { get; set; }
         public FileResult File { get; set; }
-        public ImageInfo ImageInfo { get; set; }
+        public VideoResponseModel VideoInfo { get; set; }
+        public bool IsOriginalFileOpened { get; set; }
     }
 
     private readonly NetUtils _netUtils;
@@ -52,11 +54,21 @@ public partial class MainPageViewModel : ObservableObject
     [ObservableProperty]
     private bool _isUploadButtonEnabled = false;
 
+    [ObservableProperty]
+    private bool _isOpenOriginalButtonEnabled = false;
+
+    [ObservableProperty]
+    private bool _isOriginalCurrentFileOpened;
+
+    public RelayCommand OpenOriginalButtonClickedCommand { get; }
+
     public RelayCommand UploadButtonClickedCommand { get; }
 
     public RelayCommand OpenFileCommand { get; }
 
     public RelayCommand<Item> SelectionChangedCommand { get; }
+
+    public RelayCommand SaveFileCommand { get; }
 
     public MainPageViewModel(NetUtils netUtils)
     {
@@ -65,6 +77,8 @@ public partial class MainPageViewModel : ObservableObject
         UploadButtonClickedCommand = new RelayCommand(async () => await UploadButtonClicked());
         OpenFileCommand = new RelayCommand(async () => await OpenFile());
         SelectionChangedCommand = new RelayCommand<Item>(async (item) => await SelectionChangedHandler(item));
+        SaveFileCommand = new RelayCommand(async () => await SaveFile());
+        OpenOriginalButtonClickedCommand = new RelayCommand(async () => await SwitchVideoView());
 
         _ = CheckServerConnection();
     }
@@ -79,7 +93,7 @@ public partial class MainPageViewModel : ObservableObject
             {
                 StatusColor = Colors.Green;
                 ConnectionStatus = "Подключено";
-                IsUploadButtonEnabled = SelectedItem != null;
+                IsUploadButtonEnabled = SelectedItem != null && IsOriginalCurrentFileOpened;
             }
             else
             {
@@ -98,8 +112,13 @@ public partial class MainPageViewModel : ObservableObject
             CurrentVideoSource = null;
             IsUploadButtonEnabled = false;
             IsImageDetailsVisible = false;
+            item.IsOriginalFileOpened = false;
             return;
         }
+
+
+        IsOpenOriginalButtonEnabled = SelectedItem.VideoInfo != null;
+        IsOriginalCurrentFileOpened = true;
 
         try
         {
@@ -111,12 +130,42 @@ public partial class MainPageViewModel : ObservableObject
             return;
         }
 
+        /*
         if (IsImageDetailsVisible = item.ImageInfo != null)
         {
             ImageWidth = $"Ширина: {item.ImageInfo.width}";
             ImageHeight = $"Высота: {item.ImageInfo.height}";
             ImageChannels = $"Количество каналов: {item.ImageInfo.channels}";
+        }*/
+    }
+
+    private async Task SwitchVideoView()
+    {
+        try
+        {
+            if (!IsOriginalCurrentFileOpened)
+            {
+                CurrentVideoSource = await FileUtils.OpenVideoAsync(SelectedItem.File);
+                IsOriginalCurrentFileOpened = SelectedItem.IsOriginalFileOpened = true;
+                IsUploadButtonEnabled = false;
+            }
+            else
+            {
+                CurrentVideoSource = MediaSource.FromUri(SelectedItem.VideoInfo.video_path);
+                IsOriginalCurrentFileOpened = SelectedItem.IsOriginalFileOpened = false;
+                IsUploadButtonEnabled = true;
+            }
         }
+        catch
+        {
+            Imgs.Remove(SelectedItem); // Удаляем файл, который не получилось открыть
+        }
+    }
+
+    private async Task SaveFile()
+    {
+        var fileToSave = await _netUtils.DownloadFileToStream(SelectedItem.VideoInfo.video_path);
+        await FileUtils.SaveFileByDialog(fileToSave);
     }
 
     private async Task OpenFile()
@@ -130,8 +179,9 @@ public partial class MainPageViewModel : ObservableObject
         {
             Imgs.Add(new Item
             {
-                Thumbnail = await FileUtils.GetVideoThumbnailsAsync(file, 640, 360), //FileUtils.GenerateVideoThumbnail(file.FullPath),
-                File = file
+                Thumbnail = await FileUtils.GetVideoThumbnailsAsync(file, 640, 360),
+                File = file,
+                IsOriginalFileOpened = true
             });
         }
 
@@ -150,22 +200,27 @@ public partial class MainPageViewModel : ObservableObject
             return;
         }
 
-        throw new NotImplementedException("Не понятно в какой форме нужно загружать видео");
+        //"https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
 
         try
         {
-            ImageInfo details;
+            VideoResponseModel details;
             using (var fileStream = await FileUtils.OpenFileAsync(SelectedItem.File))
             {
-                details = await _netUtils.SendImageAsync(fileStream, Path.GetFileName(SelectedItem.File.FullPath));
+                details = new VideoResponseModel { video_path = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" }; //await _netUtils.SendVideoAsync(fileStream, Path.GetFileName(SelectedItem.File.FullPath));
             }
 
-            ImageWidth = $"Ширина: {details.width}";
-            ImageHeight = $"Высота: {details.height}";
-            ImageChannels = $"Количество каналов: {details.channels}";
+            //ImageWidth = $"Ширина: {details.width}";
+            //ImageHeight = $"Высота: {details.height}";
+            //ImageChannels = $"Количество каналов: {details.channels}";
 
-            SelectedItem.ImageInfo = details;
+            SelectedItem.VideoInfo = details;
+            IsOriginalCurrentFileOpened = SelectedItem.IsOriginalFileOpened = false;
+
+            CurrentVideoSource = MediaSource.FromUri(details.video_path);
+
             IsImageDetailsVisible = true;
+            IsOpenOriginalButtonEnabled = true;
         }
         catch (IOException)
         {

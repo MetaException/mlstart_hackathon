@@ -4,9 +4,16 @@
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:Class="apiclient.Pages.MainPage">
 
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <toolkit:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
     <ContentPage.MenuBarItems>
         <MenuBarItem Text="Файл">
             <MenuFlyoutItem Text="Открыть" Command="{Binding OpenFileCommand}"/>
+            <MenuFlyoutItem Text="Сохранить" Command="{Binding SaveFileCommand}"/>
         </MenuBarItem>
     </ContentPage.MenuBarItems>
 
@@ -18,7 +25,7 @@
         </Grid.ColumnDefinitions>
 
         <Border Stroke="DarkGray" StrokeThickness="0.5"  Grid.Column="0">
-            <CollectionView Margin="1,0,1,0" ItemSizingStrategy="MeasureFirstItem" SelectedItem="{Binding SelectedItem}" SelectionChangedCommandParameter="{Binding SelectedItem, Source={RelativeSource Self}}" SelectionChangedCommand="{Binding SelectionChangedCommand}" ItemsSource="{Binding Imgs}" SelectionMode="Single" ItemsLayout="VerticalGrid,4">
+            <CollectionView x:Name="collectionView" Margin="1,0,1,0" ItemSizingStrategy="MeasureFirstItem"   SelectedItem="{Binding SelectedItem}" SelectionChangedCommandParameter="{Binding SelectedItem, Source={RelativeSource Self}}" SelectionChangedCommand="{Binding SelectionChangedCommand}" ItemsSource="{Binding Imgs}" SelectionMode="Single" ItemsLayout="VerticalGrid,4">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
                         <Image Margin="5"
@@ -51,7 +58,10 @@
                             <Label FontSize="Medium" VerticalOptions="CenterAndExpand" Text="Статус:"/>
                             <Label FontSize="Medium" Margin="20,0,0,0" TextColor="{Binding StatusColor}" VerticalOptions="CenterAndExpand" Text="{Binding ConnectionStatus}"/>
                         </HorizontalStackLayout>
+                        
                         <Button IsEnabled="{Binding IsUploadButtonEnabled}" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand" Grid.Column="1" Text="Загрузить видео" Command="{Binding UploadButtonClickedCommand}" />
+                        <Button IsEnabled="{Binding IsOpenOriginalButtonEnabled}" IsVisible="{Binding IsOriginalCurrentFileOpened, Converter={StaticResource InvertedBoolConverter}}" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand" Grid.Column="2" Text="Открыть оригинальное видео" Command="{Binding OpenOriginalButtonClickedCommand}" />
+                        <Button IsEnabled="{Binding IsOpenOriginalButtonEnabled}" IsVisible="{Binding IsOriginalCurrentFileOpened}" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand" Grid.Column="2" Text="Открыть обработанное видео" Command="{Binding OpenOriginalButtonClickedCommand}" />
 
                         <StackLayout IsVisible="{Binding IsImageDetailsVisible}" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand" Grid.Column="2">
                             <Label Text="{Binding ImageWidth}"/>

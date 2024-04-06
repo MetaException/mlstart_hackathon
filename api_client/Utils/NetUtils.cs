@@ -1,4 +1,5 @@
 ﻿using api_client.Configuration;
+using api_client.Model;
 using apiclient.Model;
 using Serilog;
 using System.Net.Http.Json;
@@ -37,6 +38,42 @@ public class NetUtils
             Log.Error(ex.Message);
         }
         return false;
+    }
+
+    public async Task<Stream> DownloadFileToStream(string url)
+    {
+        var stream = new MemoryStream();
+        HttpResponseMessage response = await _client.GetAsync(url);
+        if (response.IsSuccessStatusCode)
+        {
+            await response.Content.CopyToAsync(stream);
+        }
+        return stream;
+    }
+
+    public async Task<VideoResponseModel> SendVideoAsync(Stream fileStream, string filePath)
+    {
+        try
+        {
+            var content = new MultipartFormDataContent
+            {
+                { new StreamContent(fileStream), "video", filePath}
+            };
+
+            var response = await _client.PostAsync(ApiLinks.DataLink, content);
+
+            var videoInfo = await response.Content.ReadFromJsonAsync<VideoResponseModel>();
+
+            if (videoInfo is null)
+                throw new ArgumentNullException(nameof(videoInfo), "Сайт вернул null");
+
+            return videoInfo;
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Произошла ошибка отправки изображения по пути {filePath}: {ex.Message}");
+            throw;
+        }
     }
 
     public async Task<ImageInfo> SendImageAsync(Stream fileStream, string filePath)
