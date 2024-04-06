@@ -1,8 +1,11 @@
 ﻿using api_client.Configuration;
 using api_client.Model;
 using apiclient.Model;
+using OpenCvSharp;
 using Serilog;
+using System.IO;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace apiclient.Utils;
 
@@ -51,6 +54,32 @@ public class NetUtils
         return stream;
     }
 
+    public async Task<List<FrameInfo>> SendVideoFrameAsync(Mat frame, string fileName)
+    {
+        try
+        {
+            var content = new MultipartFormDataContent
+            {
+                { new ByteArrayContent(frame.ToBytes()), "image", fileName}
+            };
+
+            var response = await _client.PostAsync(ApiLinks.DataLink, content);
+
+            var jsonContent = await response.Content.ReadAsStringAsync();
+            var frameInfo = JsonSerializer.Deserialize<List<FrameInfo>>(jsonContent); // Обработать случай ошибки
+
+            if (frameInfo is null)
+                throw new ArgumentNullException(nameof(frameInfo), "Сайт вернул null");
+
+            return frameInfo;
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Произошла ошибка отправки изображения по пути {fileName}: {ex.Message}");
+            throw;
+        }
+    }
+
     public async Task<VideoResponseModel> SendVideoAsync(Stream fileStream, string filePath)
     {
         try
@@ -76,6 +105,7 @@ public class NetUtils
         }
     }
 
+    /*
     public async Task<ImageInfo> SendImageAsync(Stream fileStream, string filePath)
     {
         try
@@ -100,6 +130,7 @@ public class NetUtils
             throw;
         }
     }
+    */
 
     public bool SetIpAndPort(string ip, string port)
     {

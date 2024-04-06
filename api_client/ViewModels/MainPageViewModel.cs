@@ -5,7 +5,10 @@ using apiclient.Utils;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using OpenCvSharp;
 using System.Collections.ObjectModel;
+using System.Globalization;
+using Point = OpenCvSharp.Point;
 
 namespace apiclient.ViewModels;
 
@@ -14,7 +17,7 @@ public partial class MainPageViewModel : ObservableObject
     public class Item
     {
         public ImageSource Thumbnail { get; set; }
-        public FileResult File { get; set; }
+        public string FilePath { get; set; }
         public VideoResponseModel VideoInfo { get; set; }
         public bool IsOriginalFileOpened { get; set; }
     }
@@ -122,7 +125,7 @@ public partial class MainPageViewModel : ObservableObject
 
         try
         {
-            CurrentVideoSource = await FileUtils.OpenVideoAsync(item.File);
+            CurrentVideoSource = await FileUtils.OpenVideoAsync(item.FilePath);
         }
         catch
         {
@@ -130,13 +133,6 @@ public partial class MainPageViewModel : ObservableObject
             return;
         }
 
-        /*
-        if (IsImageDetailsVisible = item.ImageInfo != null)
-        {
-            ImageWidth = $"Ширина: {item.ImageInfo.width}";
-            ImageHeight = $"Высота: {item.ImageInfo.height}";
-            ImageChannels = $"Количество каналов: {item.ImageInfo.channels}";
-        }*/
     }
 
     private async Task SwitchVideoView()
@@ -145,7 +141,7 @@ public partial class MainPageViewModel : ObservableObject
         {
             if (!IsOriginalCurrentFileOpened)
             {
-                CurrentVideoSource = await FileUtils.OpenVideoAsync(SelectedItem.File);
+                CurrentVideoSource = await FileUtils.OpenVideoAsync(SelectedItem.FilePath);
                 IsOriginalCurrentFileOpened = SelectedItem.IsOriginalFileOpened = true;
                 IsUploadButtonEnabled = false;
             }
@@ -180,7 +176,7 @@ public partial class MainPageViewModel : ObservableObject
             Imgs.Add(new Item
             {
                 Thumbnail = await FileUtils.GetVideoThumbnailsAsync(file, 640, 360),
-                File = file,
+                FilePath = file.FullPath,
                 IsOriginalFileOpened = true
             });
         }
@@ -204,20 +200,65 @@ public partial class MainPageViewModel : ObservableObject
 
         try
         {
-            VideoResponseModel details;
-            using (var fileStream = await FileUtils.OpenFileAsync(SelectedItem.File))
+            var tempFilePath = Path.GetTempFileName();
+
+            using (var capture = new VideoCapture(SelectedItem.FilePath))
             {
-                details = new VideoResponseModel { video_path = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" }; //await _netUtils.SendVideoAsync(fileStream, Path.GetFileName(SelectedItem.File.FullPath));
+                if (!capture.IsOpened())
+                {
+                    return;
+                }
+
+                var frameSize = new OpenCvSharp.Size(capture.FrameWidth, capture.FrameHeight);
+
+                var writer = new VideoWriter(tempFilePath, FourCC.XVID, capture.Fps, frameSize);
+
+                Mat frame = new Mat();
+
+                while (true)
+                {
+                    capture.Read(frame);
+
+                    if (frame.Empty())
+                        break;
+
+                    var frameInfo = await _netUtils.SendVideoFrameAsync(frame, SelectedItem.FilePath);
+
+                    foreach (var info in frameInfo)
+                    {
+                        Cv2.Rectangle(frame, new Point(info.xtl, info.ytl), new Point(info.xbr, info.ybr), Scalar.Red, 2);
+                        Cv2.PutText(frame, info.classname, new Point(info.xtl + 10, info.ytl + 10), HersheyFonts.HersheyComplex, 1, Scalar.Green, 2); // TODO: всегда вмещать в экран
+                    }
+
+                    writer.Write(frame);
+                }
+
+                writer.Release();
             }
 
-            //ImageWidth = $"Ширина: {details.width}";
-            //ImageHeight = $"Высота: {details.height}";
-            //ImageChannels = $"Количество каналов: {details.channels}";
+            using (var fileStream = new FileStream(tempFilePath, FileMode.Open, FileAccess.Read))
+            {
+                var memoryStream = new MemoryStream();
+                fileStream.CopyTo(memoryStream);
+
+            }
+
+            CurrentVideoSource = MediaSource.FromFile("output.avi");
+
+            File.Delete(tempFilePath); //TODO: баг с воспроизведением локального видео
+
+            VideoResponseModel details;
+            /*
+            using (var fileStream = await FileUtils.OpenFileAsync(SelectedItem.File))
+            {
+
+
+                details = await _netUtils.SendVideoAsync(fileStream, Path.GetFileName(SelectedItem.File.FullPath));
+            }
 
             SelectedItem.VideoInfo = details;
+            */
             IsOriginalCurrentFileOpened = SelectedItem.IsOriginalFileOpened = false;
-
-            CurrentVideoSource = MediaSource.FromUri(details.video_path);
 
             IsImageDetailsVisible = true;
             IsOpenOriginalButtonEnabled = true;
@@ -231,4 +272,45 @@ public partial class MainPageViewModel : ObservableObject
             // Проверить интернет, вывести ошибку на экран?? 
         }
     }
+
+    /*
+    private async Task GetVideoPartsAsync(VideoResponseModel videoInfo)
+    {
+        List<Mat> frames;
+
+        while (true)
+        {
+            frames = await _netUtils.TryGetVideoParts(videoInfo.ID, 0);
+
+            if (frames)
+                await Task.Delay(100);
+        }
+
+        int frameWidth = frames[0].Cols;
+        int frameHeight = frames[0].Rows;
+        double frameRate = 30; // Что делаеть если 120 fps 
+
+        using (var fileStream = new FileStream("temp_video.avi", FileMode.Create))
+        {
+            // Создайте объект VideoWriter с временным файловым потоком
+            using (var videoWriter = new VideoWriter("temp_video.avi", FourCC.XVID, frameRate, new Size(frameWidth, frameHeight)))
+            {
+                foreach (var frame in frames)
+                {
+                    videoWriter.Write(frame);
+                }
+            }
+
+            using (var memoryStream = new MemoryStream())
+            {
+                fileStream.Position = 0;
+                fileStream.CopyTo(memoryStream);
+
+                byte[] videoBytes = memoryStream.ToArray();
+            }
+        }
+
+        File.Delete("temp_video.avi");
+    }
+    */
 }

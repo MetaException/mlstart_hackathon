@@ -1,10 +1,8 @@
 ﻿using CommunityToolkit.Maui.Storage;
 using CommunityToolkit.Maui.Views;
 using Serilog;
-using System.IO;
 using Windows.Media.Editing;
 using Windows.Storage;
-using Windows.Storage.Pickers;
 
 namespace api_client.Utils;
 
@@ -31,15 +29,9 @@ public static class FileUtils
         var a = await FileSaver.Default.SaveAsync("test.avi", stream);
     }
 
-    public static async Task<MediaSource> OpenVideoAsync(FileResult file)
+    public static async Task<MediaSource> OpenVideoAsync(string path)
     {
-        return MediaSource.FromFile(file.FullPath);  
-    }
-
-    public static async Task<ImageSource> OpenImageAsync(FileResult file)
-    {
-        var stream = await OpenFileAsync(file);
-        return ImageSource.FromStream(() => stream);
+        return MediaSource.FromFile(path);  
     }
 
     public static async Task<Stream> OpenFileAsync(FileResult file)
@@ -72,20 +64,5 @@ public static class FileUtils
 
         return ImageSource.FromStream(() => yourImageStream.AsStream());
 
-    }
-
-    public static ImageSource GenerateImageThumbnail(ImageSource original, int width, int height)
-    {
-        var image = new Image { Source = original };
-        image.Aspect = Aspect.AspectFill;
-
-        var scaledImage = new Image
-        {
-            Source = image.Source,
-            WidthRequest = width,
-            HeightRequest = height
-        };
-
-        return scaledImage.Source;
     }
 }
