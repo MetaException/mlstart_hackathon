@@ -158,8 +158,7 @@ public partial class MainPageViewModel : ObservableObject
 
     private async Task SaveFile()
     {
-        var fileToSave = await _netUtils.DownloadFileToStream(SelectedItem.ProcessedFilePath);
-        await FileUtils.SaveFileByDialog(fileToSave);
+        await FileUtils.SaveFileByDialog(SelectedItem.ProcessedFilePath);
     }
 
     private async Task OpenFile()
@@ -227,6 +226,7 @@ public partial class MainPageViewModel : ObservableObject
                     if (frameCount % frameInterval == 0)
                     {
                         frameInfos = await _netUtils.SendVideoFrameAsync(frame, SelectedItem.OriginalFilePath);
+                        CurrentVideoSource = MediaSource.FromFile(tempFilePath);
                     }
 
                     foreach (var info in frameInfos)
@@ -256,9 +256,8 @@ public partial class MainPageViewModel : ObservableObject
             {
                 var memoryStream = new MemoryStream();
                 fileStream.CopyTo(memoryStream);
-
             }
-
+            
             CurrentVideoSource = MediaSource.FromFile(tempFilePath);
             //File.Delete(tempFilePath);
 

@@ -24,9 +24,13 @@ public static class FileUtils
         return results;
     }
 
-    public static async Task SaveFileByDialog(Stream stream)
+    public static async Task SaveFileByDialog(string sourcePath)
     {
-        var a = await FileSaver.Default.SaveAsync("test.avi", stream);
+        var file = await OpenFileAsync(sourcePath);
+
+        var a = await FileSaver.Default.SaveAsync(Path.GetFileName(sourcePath), file);
+
+        //File.Move(sourcePath, a.FilePath);
     }
 
     public static async Task<MediaSource> OpenVideoAsync(string path)
@@ -34,15 +38,15 @@ public static class FileUtils
         return MediaSource.FromFile(path);  
     }
 
-    public static async Task<Stream> OpenFileAsync(FileResult file)
+    public static async Task<Stream> OpenFileAsync(string path)
     {
         try
         {
-            return await file.OpenReadAsync();
+            return File.OpenRead(path);
         }
         catch (Exception ex)
         {
-            Log.Error($"Не удалось открыть файл по указанному пути: {file.FullPath}: {ex.Message}");
+            Log.Error($"Не удалось открыть файл по указанному пути: {path}: {ex.Message}");
             throw;
         }
     }

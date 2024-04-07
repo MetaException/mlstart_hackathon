@@ -42,17 +42,6 @@ public class NetUtils
         return false;
     }
 
-    public async Task<Stream> DownloadFileToStream(string url)
-    {
-        var stream = new MemoryStream();
-        HttpResponseMessage response = await _client.GetAsync(url);
-        if (response.IsSuccessStatusCode)
-        {
-            await response.Content.CopyToAsync(stream);
-        }
-        return stream;
-    }
-
     public async Task<List<FrameInfo>> SendVideoFrameAsync(Mat frame, string fileName)
     {
         try
