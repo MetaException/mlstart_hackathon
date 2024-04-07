@@ -32,4 +32,5 @@ public class ApiSettings
 {
     public string Host { get; set; } = "127.0.0.1";
     public string Port { get; set; } = "8000";
+    public string FrameSendingDelay { get; set; } = "middle";
 }

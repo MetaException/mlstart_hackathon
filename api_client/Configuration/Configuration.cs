@@ -15,7 +15,7 @@ public class Configuration
         this.RootSettings = RootSettings;
     }
 
-    private void SaveJsonConfigChanges()
+    public void SaveJsonConfigChanges()
     {
         var serializedConfig = JsonConvert.SerializeObject(RootSettings, Formatting.Indented);
         File.WriteAllText(FullPath, serializedConfig);

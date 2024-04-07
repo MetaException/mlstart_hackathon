@@ -25,7 +25,6 @@
     </ContentPage.MenuBarItems>
 
     <Grid VerticalOptions="FillAndExpand">
-
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="0.3*"/>
             <ColumnDefinition Width="0.7*"/>

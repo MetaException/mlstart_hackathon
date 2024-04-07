@@ -1,4 +1,5 @@
-﻿using api_client.Utils;
+﻿using api_client.Configuration;
+using api_client.Utils;
 using apiclient.Model;
 using apiclient.Utils;
 using CommunityToolkit.Maui.Views;
@@ -20,9 +21,10 @@ public partial class MainPageViewModel : ObservableObject
         public bool IsOriginalFileOpened { get; set; }
     }
 
-    private double interval = 0.5d;
+    private double interval;
 
     private readonly NetUtils _netUtils;
+    private readonly Configuration _configuration;
 
     [ObservableProperty]
     private bool _isInternetErrorVisible;
@@ -78,27 +80,31 @@ public partial class MainPageViewModel : ObservableObject
 
     public RelayCommand<string> SetFrameSettingIntervalCommand { get; }
 
-    public MainPageViewModel(NetUtils netUtils)
+    public MainPageViewModel(NetUtils netUtils, Configuration configuration)
     {
         _netUtils = netUtils;
+        _configuration = configuration;
 
         UploadButtonClickedCommand = new RelayCommand(async () => await UploadButtonClicked());
         OpenFileCommand = new RelayCommand(async () => await OpenFile());
         SelectionChangedCommand = new RelayCommand<Item>(async (item) => await SelectionChangedHandler(item));
         SaveFileCommand = new RelayCommand(async () => await SaveFile());
         OpenOriginalButtonClickedCommand = new RelayCommand(async () => await SwitchVideoView());
-        SetFrameSettingIntervalCommand = new RelayCommand<string>(async (type) => await SetFrameSendingInterval(type)); 
+        SetFrameSettingIntervalCommand = new RelayCommand<string>(async (type) => await SetFrameSendingInterval(type));
+
+        LoadFromConfiguration();
 
         _ = CheckServerConnection();
     }
 
-    private async Task SetFrameSendingInterval(string type)
+    private void LoadFromConfiguration()
     {
-        if (type == "low")
+        var frameConf = _configuration.RootSettings.API.FrameSendingDelay;
+        if (frameConf == "low")
         {
             interval = 0.25d;
         }
-        else if (type == "middle")
+        else if (frameConf == "middle")
         {
             interval = 0.5d;
         }
@@ -106,6 +112,14 @@ public partial class MainPageViewModel : ObservableObject
         {
             interval = 1d;
         }
+    }
+
+    private async Task SetFrameSendingInterval(string type)
+    {
+        _configuration.RootSettings.API.FrameSendingDelay = type;
+        _configuration.SaveJsonConfigChanges();
+
+        LoadFromConfiguration();
     }
 
     private async Task CheckServerConnection() //TODO: cancellation token cancel когда выходишь со страницы
