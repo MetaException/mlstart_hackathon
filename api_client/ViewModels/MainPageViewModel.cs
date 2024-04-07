@@ -61,6 +61,9 @@ public partial class MainPageViewModel : ObservableObject
     [ObservableProperty]
     private bool _isOriginalCurrentFileOpened;
 
+    [ObservableProperty]
+    private bool _isActivityIndicatorVisible;
+
     public RelayCommand OpenOriginalButtonClickedCommand { get; }
 
     public RelayCommand UploadButtonClickedCommand { get; }
@@ -94,7 +97,7 @@ public partial class MainPageViewModel : ObservableObject
             {
                 StatusColor = Colors.Green;
                 ConnectionStatus = "Подключено";
-                IsUploadButtonEnabled = SelectedItem != null && IsOriginalCurrentFileOpened;
+                IsUploadButtonEnabled = SelectedItem != null && IsOriginalCurrentFileOpened && !IsActivityIndicatorVisible;
             }
             else
             {
@@ -118,7 +121,7 @@ public partial class MainPageViewModel : ObservableObject
         }
 
 
-        //IsOpenOriginalButtonEnabled = SelectedItem.VideoInfo != null;
+        IsOpenOriginalButtonEnabled = SelectedItem.ProcessedFilePath != null;
         IsOriginalCurrentFileOpened = true;
 
         try
@@ -158,6 +161,11 @@ public partial class MainPageViewModel : ObservableObject
 
     private async Task SaveFile()
     {
+        if (SelectedItem.ProcessedFilePath is null)
+        {
+            await App.Current.MainPage.DisplayAlert("Внимание", "Сначала обработайте файл", "OK");
+        }
+
         await FileUtils.SaveFileByDialog(SelectedItem.ProcessedFilePath);
     }
 
@@ -183,6 +191,9 @@ public partial class MainPageViewModel : ObservableObject
 
     private async Task UploadButtonClicked()
     {
+        IsActivityIndicatorVisible = true;
+        IsUploadButtonEnabled = false;
+
         bool isConnected = await _netUtils.CheckServerConnection();
 
         if (!isConnected)
@@ -195,7 +206,7 @@ public partial class MainPageViewModel : ObservableObject
 
         try
         {
-            var tempFilePath = SelectedItem.ProcessedFilePath = $"{Path.GetTempPath()}{Path.GetFileName(SelectedItem.OriginalFilePath)}-output.avi";
+            var tempFilePath = SelectedItem.ProcessedFilePath = $"{Path.GetTempPath()}{Path.GetFileName(SelectedItem.OriginalFilePath)}-output.avi"; 
 
             using (var capture = new VideoCapture(SelectedItem.OriginalFilePath))
             {
@@ -225,7 +236,7 @@ public partial class MainPageViewModel : ObservableObject
 
                     if (frameCount % frameInterval == 0)
                     {
-                        frameInfos = await _netUtils.SendVideoFrameAsync(frame, SelectedItem.OriginalFilePath);
+                        frameInfos = await _netUtils.SendVideoFrameAsync(frame, SelectedItem.OriginalFilePath); //TODO: если выбрать другой файл по время обработки??
                         CurrentVideoSource = MediaSource.FromFile(tempFilePath);
                     }
 
@@ -265,14 +276,23 @@ public partial class MainPageViewModel : ObservableObject
 
             IsImageDetailsVisible = true;
             IsOpenOriginalButtonEnabled = true;
+            IsActivityIndicatorVisible = false;
+
+            IsUploadButtonEnabled = true;
         }
         catch (IOException)
         {
             Imgs.Remove(SelectedItem); // Удаляем файл, который не получилось открыть. Удаление вызовет SelectionChangedHandler
+
+            IsActivityIndicatorVisible = false;
+            IsUploadButtonEnabled = true;
         }
         catch (Exception)
         {
             // Проверить интернет, вывести ошибку на экран?? 
+
+            IsActivityIndicatorVisible = false;
+            IsUploadButtonEnabled = true;
         }
     }
 }

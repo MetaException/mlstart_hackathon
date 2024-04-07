@@ -58,8 +58,11 @@
                             <Label FontSize="Medium" VerticalOptions="CenterAndExpand" Text="Статус:"/>
                             <Label FontSize="Medium" Margin="20,0,0,0" TextColor="{Binding StatusColor}" VerticalOptions="CenterAndExpand" Text="{Binding ConnectionStatus}"/>
                         </HorizontalStackLayout>
-                        
-                        <Button IsEnabled="{Binding IsUploadButtonEnabled}" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand" Grid.Column="1" Text="Загрузить видео" Command="{Binding UploadButtonClickedCommand}" />
+
+                        <HorizontalStackLayout Grid.Column="1" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand">
+                            <Button IsEnabled="{Binding IsUploadButtonEnabled}" Text="Загрузить видео" Command="{Binding UploadButtonClickedCommand}" />
+                            <ActivityIndicator Margin="10,0,0,0" IsRunning="True" IsVisible="{Binding IsActivityIndicatorVisible}" />
+                        </HorizontalStackLayout>
                         <Button IsEnabled="{Binding IsOpenOriginalButtonEnabled}" IsVisible="{Binding IsOriginalCurrentFileOpened, Converter={StaticResource InvertedBoolConverter}}" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand" Grid.Column="2" Text="Открыть оригинальное видео" Command="{Binding OpenOriginalButtonClickedCommand}" />
                         <Button IsEnabled="{Binding IsOpenOriginalButtonEnabled}" IsVisible="{Binding IsOriginalCurrentFileOpened}" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand" Grid.Column="2" Text="Открыть обработанное видео" Command="{Binding OpenOriginalButtonClickedCommand}" />
 
