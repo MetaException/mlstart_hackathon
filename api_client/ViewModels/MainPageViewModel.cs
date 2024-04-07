@@ -5,6 +5,7 @@ using apiclient.Utils;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml.Documents;
 using OpenCvSharp;
 using System.Collections.ObjectModel;
 using Point = OpenCvSharp.Point;
@@ -241,9 +242,10 @@ public partial class MainPageViewModel : ObservableObject
 
         try
         {
-            var tempFilePath = SelectedItem.ProcessedFilePath = $"{Path.GetTempPath()}{Path.GetFileName(SelectedItem.OriginalFilePath)}-output.avi"; 
+            var tempFilePath = SelectedItem.ProcessedFilePath = $"{Path.GetTempPath()}{Path.GetFileName(SelectedItem.OriginalFilePath)}-output.avi";
+            var sourceFilePath = SelectedItem.OriginalFilePath; //TODO: сделать копию объекта и возвращать главное окно к нему после обработки
 
-            using (var capture = new VideoCapture(SelectedItem.OriginalFilePath))
+            using (var capture = new VideoCapture(sourceFilePath))
             {
                 if (!capture.IsOpened())
                 {
@@ -252,7 +254,7 @@ public partial class MainPageViewModel : ObservableObject
 
                 var fps = capture.Fps;
                 int frameCount = 0;
-                var frameInterval = (int)Math.Round(fps * interval);
+                var frameInterval = (int)Math.Round(fps * interval); // Во время работы не получится изменить частоту
 
                 var frameSize = new OpenCvSharp.Size(capture.FrameWidth, capture.FrameHeight);
 
@@ -271,8 +273,27 @@ public partial class MainPageViewModel : ObservableObject
 
                     if (frameCount % frameInterval == 0)
                     {
-                        frameInfos = await _netUtils.SendVideoFrameAsync(frame, SelectedItem.OriginalFilePath); //TODO: если выбрать другой файл по время обработки??
-                        CurrentVideoSource = MediaSource.FromFile(tempFilePath);
+                        bool isError = false;
+
+                        for (int attempts = 0; attempts < 5; attempts++)
+                        {
+                            try
+                            {
+                                frameInfos = await _netUtils.SendVideoFrameAsync(frame, sourceFilePath); //TODO: если выбрать другой файл по время обработки??
+                                CurrentVideoSource = MediaSource.FromFile(tempFilePath);
+                                isError = false;
+                                break;
+                            }
+                            catch (Exception)
+                            {
+                                isError = true;
+                            }
+                        }
+                        if (isError)
+                        {
+                            await App.Current.MainPage.DisplayAlert("Ошибка", "Произошла ошибка получения данных с сервера", "OK");
+                            break;
+                        }
                     }
 
                     foreach (var info in frameInfos)
