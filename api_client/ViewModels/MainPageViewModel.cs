@@ -15,7 +15,8 @@ public partial class MainPageViewModel : ObservableObject
     public class Item
     {
         public ImageSource Thumbnail { get; set; }
-        public string FilePath { get; set; }
+        public string OriginalFilePath { get; set; }
+        public string ProcessedFilePath { get; set; }
         public bool IsOriginalFileOpened { get; set; }
     }
 
@@ -122,7 +123,7 @@ public partial class MainPageViewModel : ObservableObject
 
         try
         {
-            CurrentVideoSource = await FileUtils.OpenVideoAsync(item.FilePath);
+            CurrentVideoSource = await FileUtils.OpenVideoAsync(item.OriginalFilePath);
         }
         catch
         {
@@ -138,13 +139,13 @@ public partial class MainPageViewModel : ObservableObject
         {
             if (!IsOriginalCurrentFileOpened)
             {
-                CurrentVideoSource = await FileUtils.OpenVideoAsync(SelectedItem.FilePath);
+                CurrentVideoSource = await FileUtils.OpenVideoAsync(SelectedItem.OriginalFilePath);
                 IsOriginalCurrentFileOpened = SelectedItem.IsOriginalFileOpened = true;
                 IsUploadButtonEnabled = false;
             }
             else
             {
-                //CurrentVideoSource = MediaSource.FromUri(SelectedItem.VideoInfo.video_path);
+                CurrentVideoSource = await FileUtils.OpenVideoAsync(SelectedItem.ProcessedFilePath);
                 IsOriginalCurrentFileOpened = SelectedItem.IsOriginalFileOpened = false;
                 IsUploadButtonEnabled = true;
             }
@@ -157,7 +158,7 @@ public partial class MainPageViewModel : ObservableObject
 
     private async Task SaveFile()
     {
-        var fileToSave = await _netUtils.DownloadFileToStream(SelectedItem.FilePath);
+        var fileToSave = await _netUtils.DownloadFileToStream(SelectedItem.ProcessedFilePath);
         await FileUtils.SaveFileByDialog(fileToSave);
     }
 
@@ -173,7 +174,7 @@ public partial class MainPageViewModel : ObservableObject
             Imgs.Add(new Item
             {
                 Thumbnail = await FileUtils.GetVideoThumbnailsAsync(file, 640, 360),
-                FilePath = file.FullPath,
+                OriginalFilePath = file.FullPath,
                 IsOriginalFileOpened = true
             });
         }
@@ -195,9 +196,9 @@ public partial class MainPageViewModel : ObservableObject
 
         try
         {
-            var tempFilePath = $"{Path.GetTempPath()}{Path.GetFileName(SelectedItem.FilePath)}-output.avi";
+            var tempFilePath = SelectedItem.ProcessedFilePath = $"{Path.GetTempPath()}{Path.GetFileName(SelectedItem.OriginalFilePath)}-output.avi";
 
-            using (var capture = new VideoCapture(SelectedItem.FilePath))
+            using (var capture = new VideoCapture(SelectedItem.OriginalFilePath))
             {
                 if (!capture.IsOpened())
                 {
@@ -225,13 +226,23 @@ public partial class MainPageViewModel : ObservableObject
 
                     if (frameCount % frameInterval == 0)
                     {
-                        frameInfos = await _netUtils.SendVideoFrameAsync(frame, SelectedItem.FilePath);
+                        frameInfos = await _netUtils.SendVideoFrameAsync(frame, SelectedItem.OriginalFilePath);
                     }
 
                     foreach (var info in frameInfos)
                     {
-                        Cv2.Rectangle(frame, new Point(info.xtl, info.ytl), new Point(info.xbr, info.ybr), Scalar.Red, 2);
-                        Cv2.PutText(frame, info.classname, new Point(info.xtl + 10, info.ytl + 10), HersheyFonts.HersheyComplex, 1, Scalar.Green, 2); // TODO: всегда вмещать в экран
+                        Scalar color;
+
+                        if (info.classname == "Ypal")
+                        {
+                            color = Scalar.Orange;
+                        }
+                        else
+                        {
+                            color = Scalar.Green;
+                        }
+                        Cv2.Rectangle(frame, new Point(info.xtl, info.ytl), new Point(info.xbr, info.ybr), color, 2);
+                        Cv2.PutText(frame, info.classname, new Point(info.xtl + 10, info.ytl + 10), HersheyFonts.HersheySimplex, 1, color, 2); // TODO: всегда вмещать в экран
                     }
 
                     frameCount++;
