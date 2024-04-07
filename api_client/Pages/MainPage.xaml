@@ -15,6 +15,13 @@
             <MenuFlyoutItem Text="Открыть" Command="{Binding OpenFileCommand}"/>
             <MenuFlyoutItem Text="Сохранить" Command="{Binding SaveFileCommand}"/>
         </MenuBarItem>
+        <MenuBarItem Text="Настройки">
+            <MenuFlyoutSubItem Text="Интервал отправки кадров в секунду">
+                <MenuFlyoutItem Text="0.25" Command="{Binding SetFrameSettingIntervalCommand}" CommandParameter="low"/>
+                <MenuFlyoutItem Text="0.5" Command="{Binding SetFrameSettingIntervalCommand}" CommandParameter="middle"/>
+                <MenuFlyoutItem Text="1" Command="{Binding SetFrameSettingIntervalCommand}" CommandParameter="high"/>
+            </MenuFlyoutSubItem>
+        </MenuBarItem>
     </ContentPage.MenuBarItems>
 
     <Grid VerticalOptions="FillAndExpand">

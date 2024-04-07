@@ -20,6 +20,8 @@ public partial class MainPageViewModel : ObservableObject
         public bool IsOriginalFileOpened { get; set; }
     }
 
+    private double interval = 0.5d;
+
     private readonly NetUtils _netUtils;
 
     [ObservableProperty]
@@ -74,6 +76,8 @@ public partial class MainPageViewModel : ObservableObject
 
     public RelayCommand SaveFileCommand { get; }
 
+    public RelayCommand<string> SetFrameSettingIntervalCommand { get; }
+
     public MainPageViewModel(NetUtils netUtils)
     {
         _netUtils = netUtils;
@@ -83,11 +87,28 @@ public partial class MainPageViewModel : ObservableObject
         SelectionChangedCommand = new RelayCommand<Item>(async (item) => await SelectionChangedHandler(item));
         SaveFileCommand = new RelayCommand(async () => await SaveFile());
         OpenOriginalButtonClickedCommand = new RelayCommand(async () => await SwitchVideoView());
+        SetFrameSettingIntervalCommand = new RelayCommand<string>(async (type) => await SetFrameSendingInterval(type)); 
 
         _ = CheckServerConnection();
     }
 
-    private async Task CheckServerConnection()
+    private async Task SetFrameSendingInterval(string type)
+    {
+        if (type == "low")
+        {
+            interval = 0.25d;
+        }
+        else if (type == "middle")
+        {
+            interval = 0.5d;
+        }
+        else
+        {
+            interval = 1d;
+        }
+    }
+
+    private async Task CheckServerConnection() //TODO: cancellation token cancel когда выходишь со страницы
     {
         while (true)
         {
@@ -217,7 +238,7 @@ public partial class MainPageViewModel : ObservableObject
 
                 var fps = capture.Fps;
                 int frameCount = 0;
-                var frameInterval = (int)Math.Round(fps * 0.5);
+                var frameInterval = (int)Math.Round(fps * interval);
 
                 var frameSize = new OpenCvSharp.Size(capture.FrameWidth, capture.FrameHeight);
 
