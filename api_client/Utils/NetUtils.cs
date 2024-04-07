@@ -1,5 +1,4 @@
 ﻿using api_client.Configuration;
-using api_client.Model;
 using apiclient.Model;
 using OpenCvSharp;
 using Serilog;
@@ -79,58 +78,6 @@ public class NetUtils
             throw;
         }
     }
-
-    public async Task<VideoResponseModel> SendVideoAsync(Stream fileStream, string filePath)
-    {
-        try
-        {
-            var content = new MultipartFormDataContent
-            {
-                { new StreamContent(fileStream), "video", filePath}
-            };
-
-            var response = await _client.PostAsync(ApiLinks.DataLink, content);
-
-            var videoInfo = await response.Content.ReadFromJsonAsync<VideoResponseModel>();
-
-            if (videoInfo is null)
-                throw new ArgumentNullException(nameof(videoInfo), "Сайт вернул null");
-
-            return videoInfo;
-        }
-        catch (Exception ex)
-        {
-            Log.Error($"Произошла ошибка отправки изображения по пути {filePath}: {ex.Message}");
-            throw;
-        }
-    }
-
-    /*
-    public async Task<ImageInfo> SendImageAsync(Stream fileStream, string filePath)
-    {
-        try
-        {
-            var content = new MultipartFormDataContent
-            {
-                { new StreamContent(fileStream), "image", filePath}
-            };
-
-            var response = await _client.PostAsync(ApiLinks.DataLink, content);
-
-            var imageInfo = await response.Content.ReadFromJsonAsync<ImageInfo>();
-
-            if (imageInfo is null)
-                throw new ArgumentNullException(nameof(imageInfo), "Сайт вернул null");
-
-            return imageInfo;
-        }
-        catch (Exception ex)
-        {
-            Log.Error($"Произошла ошибка отправки изображения по пути {filePath}: {ex.Message}");
-            throw;
-        }
-    }
-    */
 
     public bool SetIpAndPort(string ip, string port)
     {
