@@ -2,6 +2,7 @@
 
 public class FrameInfo
 {
+    public double objectid { get; set; }
     public string classname { get; set; }
     public double xtl { get; set; }
     public double xbr { get; set; }

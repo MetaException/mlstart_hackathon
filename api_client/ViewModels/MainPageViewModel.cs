@@ -5,7 +5,6 @@ using apiclient.Utils;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.UI.Xaml.Documents;
 using OpenCvSharp;
 using System.Collections.ObjectModel;
 using Point = OpenCvSharp.Point;
@@ -28,34 +27,13 @@ public partial class MainPageViewModel : ObservableObject
     private readonly Configuration _configuration;
 
     [ObservableProperty]
-    private bool _isInternetErrorVisible;
-
-    [ObservableProperty]
     private MediaSource _currentVideoSource;
-
-    [ObservableProperty]
-    private string _imageWidth;
-
-    [ObservableProperty]
-    private string _imageHeight;
-
-    [ObservableProperty]
-    private string _imageChannels;
 
     [ObservableProperty]
     private ObservableCollection<Item> _imgs = new ObservableCollection<Item>();
 
     [ObservableProperty]
     private Item _selectedItem;
-
-    [ObservableProperty]
-    private bool _isImageDetailsVisible = false;
-
-    [ObservableProperty]
-    private string _connectionStatus;
-
-    [ObservableProperty]
-    private Color _statusColor;
 
     [ObservableProperty]
     private bool _isUploadButtonEnabled = false;
@@ -69,13 +47,16 @@ public partial class MainPageViewModel : ObservableObject
     [ObservableProperty]
     private bool _isActivityIndicatorVisible;
 
+    [ObservableProperty]
+    private bool _isConnected;
+
     public RelayCommand OpenOriginalButtonClickedCommand { get; }
 
     public RelayCommand UploadButtonClickedCommand { get; }
 
     public RelayCommand OpenFileCommand { get; }
 
-    public RelayCommand<Item> SelectionChangedCommand { get; }
+    public RelayCommand SelectionChangedCommand { get; }
 
     public RelayCommand SaveFileCommand { get; }
 
@@ -88,10 +69,10 @@ public partial class MainPageViewModel : ObservableObject
 
         UploadButtonClickedCommand = new RelayCommand(async () => await UploadButtonClicked());
         OpenFileCommand = new RelayCommand(async () => await OpenFile());
-        SelectionChangedCommand = new RelayCommand<Item>(async (item) => await SelectionChangedHandler(item));
+        SelectionChangedCommand = new RelayCommand(SelectionChangedHandler);
         SaveFileCommand = new RelayCommand(async () => await SaveFile());
-        OpenOriginalButtonClickedCommand = new RelayCommand(async () => await SwitchVideoView());
-        SetFrameSettingIntervalCommand = new RelayCommand<string>(async (type) => await SetFrameSendingInterval(type));
+        OpenOriginalButtonClickedCommand = new RelayCommand(SwitchVideoView);
+        SetFrameSettingIntervalCommand = new RelayCommand<string>((type) => SetFrameSendingInterval(type));
 
         LoadFromConfiguration();
 
@@ -103,7 +84,7 @@ public partial class MainPageViewModel : ObservableObject
         var frameConf = _configuration.RootSettings.API.FrameSendingDelay;
         if (frameConf == "low")
         {
-            interval = 0.25d;
+            interval = 0.05d;
         }
         else if (frameConf == "middle")
         {
@@ -115,7 +96,7 @@ public partial class MainPageViewModel : ObservableObject
         }
     }
 
-    private async Task SetFrameSendingInterval(string type)
+    private void SetFrameSendingInterval(string type)
     {
         _configuration.RootSettings.API.FrameSendingDelay = type;
         _configuration.SaveJsonConfigChanges();
@@ -127,67 +108,45 @@ public partial class MainPageViewModel : ObservableObject
     {
         while (true)
         {
-            bool isConnected = await _netUtils.CheckServerConnection();
+            IsConnected = await _netUtils.CheckServerConnection();
 
-            if (isConnected)
-            {
-                StatusColor = Colors.Green;
-                ConnectionStatus = "Подключено";
-                IsUploadButtonEnabled = SelectedItem != null && IsOriginalCurrentFileOpened && !IsActivityIndicatorVisible;
-            }
-            else
-            {
-                StatusColor = Colors.Red;
-                ConnectionStatus = "Отключено";
-                IsUploadButtonEnabled = false;
-            }
+            IsUploadButtonEnabled = IsConnected && SelectedItem != null && IsOriginalCurrentFileOpened && !IsActivityIndicatorVisible;
+
             await Task.Delay(1000);
         }
     }
 
-    private async Task SelectionChangedHandler(Item item)
+    private void SelectionChangedHandler()
     {
-        if (item == null)
+        if (SelectedItem == null)
         {
             CurrentVideoSource = null;
             IsUploadButtonEnabled = false;
-            IsImageDetailsVisible = false;
-            item.IsOriginalFileOpened = false;
             return;
         }
-
 
         IsOpenOriginalButtonEnabled = SelectedItem.ProcessedFilePath != null;
         IsOriginalCurrentFileOpened = true;
 
         try
         {
-            CurrentVideoSource = await FileUtils.OpenVideoAsync(item.OriginalFilePath);
+            CurrentVideoSource = FileUtils.OpenVideoAsync(SelectedItem.OriginalFilePath);
         }
         catch
         {
-            Imgs.Remove(item); // Удаляем файл, который не получилось открыть
-            return;
+            Imgs.Remove(SelectedItem); // Удаляем файл, который не получилось открыть
         }
 
     }
 
-    private async Task SwitchVideoView()
+    private void SwitchVideoView()
     {
         try
         {
-            if (!IsOriginalCurrentFileOpened)
-            {
-                CurrentVideoSource = await FileUtils.OpenVideoAsync(SelectedItem.OriginalFilePath);
-                IsOriginalCurrentFileOpened = SelectedItem.IsOriginalFileOpened = true;
-                IsUploadButtonEnabled = false;
-            }
-            else
-            {
-                CurrentVideoSource = await FileUtils.OpenVideoAsync(SelectedItem.ProcessedFilePath);
-                IsOriginalCurrentFileOpened = SelectedItem.IsOriginalFileOpened = false;
-                IsUploadButtonEnabled = true;
-            }
+            CurrentVideoSource = IsOriginalCurrentFileOpened ? FileUtils.OpenVideoAsync(SelectedItem.ProcessedFilePath) : FileUtils.OpenVideoAsync(SelectedItem.OriginalFilePath); // Краш при ошибке открытия
+
+            IsUploadButtonEnabled = IsOriginalCurrentFileOpened;
+            IsOriginalCurrentFileOpened = SelectedItem.IsOriginalFileOpened = !IsOriginalCurrentFileOpened;
         }
         catch
         {
@@ -230,15 +189,7 @@ public partial class MainPageViewModel : ObservableObject
         IsActivityIndicatorVisible = true;
         IsUploadButtonEnabled = false;
 
-        bool isConnected = await _netUtils.CheckServerConnection();
-
-        if (!isConnected)
-        {
-            StatusColor = Colors.Red;
-            ConnectionStatus = "Отключено";
-            IsUploadButtonEnabled = false;
-            return;
-        }
+        IsConnected = await _netUtils.CheckServerConnection();
 
         try
         {
@@ -249,7 +200,7 @@ public partial class MainPageViewModel : ObservableObject
             {
                 if (!capture.IsOpened())
                 {
-                    return;
+                    throw new IOException($"Cannot open file {sourceFilePath}");
                 }
 
                 var fps = capture.Fps;
@@ -300,16 +251,22 @@ public partial class MainPageViewModel : ObservableObject
                     {
                         Scalar color;
 
-                        if (info.classname == "Ypal")
-                        {
-                            color = Scalar.Orange;
-                        }
-                        else
+                        if (info.classname == "Standing")
                         {
                             color = Scalar.Green;
                         }
+                        else if (info.classname == "Lying")
+                        {
+                            color = Scalar.Yellow;
+                        }
+                        else
+                        {
+                            color = Scalar.Red;
+                        }
+
                         Cv2.Rectangle(frame, new Point(info.xtl, info.ytl), new Point(info.xbr, info.ybr), color, 2);
-                        Cv2.PutText(frame, info.classname, new Point(info.xtl + 10, info.ytl + 10), HersheyFonts.HersheySimplex, 1, color, 2); // TODO: всегда вмещать в экран
+                        Cv2.PutText(frame, info.objectid.ToString(), new Point(info.xtl + 50, info.ytl - 5), HersheyFonts.HersheySimplex, 1, color, 2);
+                        Cv2.PutText(frame, info.classname, new Point(info.xtl + 100, info.ytl - 5), HersheyFonts.HersheySimplex, 1, color, 2); // TODO: всегда вмещать в экран10
                     }
 
                     frameCount++;
@@ -324,13 +281,11 @@ public partial class MainPageViewModel : ObservableObject
                 var memoryStream = new MemoryStream();
                 fileStream.CopyTo(memoryStream);
             }
-            
+
             CurrentVideoSource = MediaSource.FromFile(tempFilePath);
-            //File.Delete(tempFilePath);
 
             IsOriginalCurrentFileOpened = SelectedItem.IsOriginalFileOpened = false;
 
-            IsImageDetailsVisible = true;
             IsOpenOriginalButtonEnabled = true;
             IsActivityIndicatorVisible = false;
 

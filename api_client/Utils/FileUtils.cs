@@ -26,19 +26,16 @@ public static class FileUtils
 
     public static async Task SaveFileByDialog(string sourcePath)
     {
-        var file = await OpenFileAsync(sourcePath);
-
-        var a = await FileSaver.Default.SaveAsync(Path.GetFileName(sourcePath), file);
-
-        //File.Move(sourcePath, a.FilePath);
+        var file = OpenFileAsync(sourcePath);
+        await FileSaver.Default.SaveAsync(Path.GetFileName(sourcePath), file);
     }
 
-    public static async Task<MediaSource> OpenVideoAsync(string path)
+    public static MediaSource OpenVideoAsync(string path)
     {
         return MediaSource.FromFile(path);  
     }
 
-    public static async Task<Stream> OpenFileAsync(string path)
+    public static Stream OpenFileAsync(string path)
     {
         try
         {

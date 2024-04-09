@@ -2,8 +2,6 @@
 using apiclient.Model;
 using OpenCvSharp;
 using Serilog;
-using System.IO;
-using System.Net.Http.Json;
 using System.Text.Json;
 
 namespace apiclient.Utils;
