@@ -1,7 +1,6 @@
 ﻿using api_client.Configuration;
+using api_client.Model;
 using api_client.Utils;
-using apiclient.Model;
-using apiclient.Utils;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -9,31 +8,23 @@ using OpenCvSharp;
 using System.Collections.ObjectModel;
 using Point = OpenCvSharp.Point;
 
-namespace apiclient.ViewModels;
+namespace api_client.ViewModels;
 
 public partial class MainPageViewModel : ObservableObject
 {
-    public class Item
-    {
-        public ImageSource Thumbnail { get; set; }
-        public string OriginalFilePath { get; set; }
-        public string ProcessedFilePath { get; set; }
-        public bool IsOriginalFileOpened { get; set; }
-    }
-
     private double interval;
 
     private readonly NetUtils _netUtils;
-    private readonly Configuration _configuration;
+    private readonly ConfigurationManager _configuration;
 
     [ObservableProperty]
     private MediaSource _currentVideoSource;
 
     [ObservableProperty]
-    private ObservableCollection<Item> _imgs = new ObservableCollection<Item>();
+    private ObservableCollection<VideoItem> _imgs = new ObservableCollection<VideoItem>();
 
     [ObservableProperty]
-    private Item _selectedItem;
+    private VideoItem _selectedItem;
 
     [ObservableProperty]
     private bool _isUploadButtonEnabled = false;
@@ -62,7 +53,7 @@ public partial class MainPageViewModel : ObservableObject
 
     public RelayCommand<string> SetFrameSettingIntervalCommand { get; }
 
-    public MainPageViewModel(NetUtils netUtils, Configuration configuration)
+    public MainPageViewModel(NetUtils netUtils, ConfigurationManager configuration)
     {
         _netUtils = netUtils;
         _configuration = configuration;
@@ -173,7 +164,7 @@ public partial class MainPageViewModel : ObservableObject
 
         foreach (var file in files)
         {
-            Imgs.Add(new Item
+            Imgs.Add(new VideoItem
             {
                 Thumbnail = await FileUtils.GetVideoThumbnailsAsync(file, 640, 360),
                 OriginalFilePath = file.FullPath,

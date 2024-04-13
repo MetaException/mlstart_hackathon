@@ -2,7 +2,10 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
-             x:Class="apiclient.Pages.MainPage">
+             xmlns:viewmodel="clr-namespace:api_client.ViewModels"
+             xmlns:model="clr-namespace:api_client.Model"
+             x:DataType="viewmodel:MainPageViewModel"
+             x:Class="api_client.Pages.MainPage">
 
     <ContentPage.Resources>
         <ResourceDictionary>
@@ -35,10 +38,10 @@
         <Border Stroke="DarkGray" StrokeThickness="0.5"  Grid.Column="0">
             <CollectionView x:Name="collectionView" Margin="1,0,1,0" ItemSizingStrategy="MeasureFirstItem" SelectedItem="{Binding SelectedItem}" SelectionChangedCommandParameter="{Binding SelectedItem, Source={RelativeSource Self}}" SelectionChangedCommand="{Binding SelectionChangedCommand}" ItemsSource="{Binding Imgs}" SelectionMode="Single" ItemsLayout="VerticalGrid,4">
                 <CollectionView.ItemTemplate>
-                    <DataTemplate>
+                    <DataTemplate x:DataType="model:VideoItem">
                         <Image Margin="5"
                               Aspect="AspectFill"
-                              Source="{Binding Thumbnail}"/>
+                              Source="{Binding Thumbnail}" />
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
@@ -76,8 +79,6 @@
 
                     </Grid>
                 </Border>
-                
-
 
             </Grid>
         </Border>

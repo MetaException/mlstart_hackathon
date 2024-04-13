@@ -1,13 +1,13 @@
 ﻿using api_client.Configuration;
-using apiclient.Pages;
-using apiclient.Utils;
-using apiclient.ViewModels;
+using api_client.Pages;
+using api_client.Utils;
+using api_client.ViewModels;
 using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
 
-namespace apiclient
+namespace api_client
 {
     public static class MauiProgram
     {
@@ -33,7 +33,7 @@ namespace apiclient
             CreateLogger();
 
             // Позволит заменять конфигурацию прямо на ходу в коде
-            builder.Services.AddSingleton<Configuration>(Configuration.SetupConfiguration());
+            builder.Services.AddSingleton<ConfigurationManager>(ConfigurationManager.SetupConfiguration());
 
             builder.Services.AddSingleton<NetUtils>();
 

@@ -1,19 +1,19 @@
 ﻿using api_client.Configuration;
-using apiclient.Model;
+using api_client.Model;
 using OpenCvSharp;
 using Serilog;
 using System.Text.Json;
 
-namespace apiclient.Utils;
+namespace api_client.Utils;
 
 public class NetUtils
 {
     private readonly HttpClientHandler _handler;
-    private readonly Configuration _settings;
+    private readonly ConfigurationManager _settings;
 
     private HttpClient _client;
 
-    public NetUtils(Configuration settings)
+    public NetUtils(ConfigurationManager settings)
     {
         _handler = new HttpClientHandler();
 

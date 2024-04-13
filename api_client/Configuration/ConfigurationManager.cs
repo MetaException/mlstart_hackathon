@@ -4,12 +4,12 @@ using Serilog;
 
 namespace api_client.Configuration;
 
-public class Configuration
+public class ConfigurationManager
 {
     public string FullPath { get; set; }
     public RootSettings RootSettings { get; set; }
 
-    public Configuration(string FullPath, RootSettings RootSettings)
+    public ConfigurationManager(string FullPath, RootSettings RootSettings)
     {
         this.FullPath = FullPath;
         this.RootSettings = RootSettings;
@@ -65,7 +65,7 @@ public class Configuration
         }
     }
 
-    public static Configuration SetupConfiguration(string fullPath = "Configuartion/appsettings.json")
+    public static ConfigurationManager SetupConfiguration(string fullPath = "Configuartion/appsettings.json")
     {
         Log.Information("Загрузка конфигурации.");
 
@@ -77,7 +77,7 @@ public class Configuration
 
         var rootSettings = configuration.Get<RootSettings>() ?? new RootSettings();
 
-        var newConfig = new Configuration(fullPath, rootSettings);
+        var newConfig = new ConfigurationManager(fullPath, rootSettings);
         newConfig.CreateConfigurationFile();
 
         return newConfig;

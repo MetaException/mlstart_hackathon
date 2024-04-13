@@ -1,4 +1,4 @@
-﻿namespace apiclient.Model;
+﻿namespace api_client.Model;
 
 public class FrameInfo
 {

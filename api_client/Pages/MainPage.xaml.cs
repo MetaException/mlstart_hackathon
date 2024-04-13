@@ -1,6 +1,6 @@
-﻿using apiclient.ViewModels;
+﻿using api_client.ViewModels;
 
-namespace apiclient.Pages
+namespace api_client.Pages
 {
     public partial class MainPage : ContentPage
     {
