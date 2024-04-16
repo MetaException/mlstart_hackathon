@@ -51,13 +51,16 @@ public class NetUtils
 
             var response = await _client.PostAsync(ApiLinks.DataLink, content);
 
-            var jsonContent = await response.Content.ReadAsStringAsync();
-            var frameInfo = JsonSerializer.Deserialize<List<FrameInfo>>(jsonContent); // Обработать случай ошибки
+            List<FrameInfo> frameInfos;
+            using (var stream = await response.Content.ReadAsStreamAsync())
+            {
+                frameInfos = await JsonSerializer.DeserializeAsync<List<FrameInfo>>(stream);
+            }
 
-            if (frameInfo is null)
-                throw new ArgumentNullException(nameof(frameInfo), "Сайт вернул null");
+            if (frameInfos is null)
+                throw new ArgumentNullException(nameof(frameInfos), "Сайт вернул null");
 
-            return frameInfo;
+            return frameInfos;
         }
         catch (Exception ex)
         {

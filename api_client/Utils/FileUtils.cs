@@ -64,6 +64,5 @@ public static class FileUtils
            VideoFramePrecision.NearestFrame);
 
         return ImageSource.FromStream(() => yourImageStream.AsStream());
-
     }
 }

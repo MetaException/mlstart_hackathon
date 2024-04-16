@@ -9,6 +9,7 @@ namespace api_client
             InitializeComponent();
 
             Routing.RegisterRoute("MainPage", typeof(MainPage));
+            Routing.RegisterRoute("MainPage/SettingsPage", typeof(SettingsPage));
         }
     }
 }

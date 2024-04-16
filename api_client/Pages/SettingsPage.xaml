@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:viewmodel="clr-namespace:api_client.ViewModels"
+             x:DataType="viewmodel:SettingsPageViewModel"
+             x:Class="api_client.Pages.SettingsPage"
+             Shell.NavBarIsVisible="True">
+
+    <Shell.TitleView>
+        <Label VerticalTextAlignment="Center" FontSize="Medium" HorizontalTextAlignment="Center" Text="Настройки"/>
+    </Shell.TitleView>
+    
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="0.8*"/>
+            <RowDefinition Height="0.2*"/>
+        </Grid.RowDefinitions>
+        
+        <StackLayout HorizontalOptions="CenterAndExpand" Grid.Row="0" Margin="0,20,0,0" VerticalOptions="StartAndExpand">
+            <Label Text="Интервал отправки каждого кадра относительно видео"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="0.9*"/>
+                    <ColumnDefinition Width="0.1*"/>
+                </Grid.ColumnDefinitions>
+                <Slider Value="{Binding IntervalValue}" Grid.Column="0" Minimum="0.01" Maximum="1"/>
+                <Label VerticalOptions="CenterAndExpand" HorizontalOptions="Center" Grid.Column="1" Text="{Binding IntervalValue, StringFormat='{0:F2}'}"/>
+            </Grid>
+        </StackLayout>
+        <Button Grid.Row="1" Command="{Binding UpdateSettingsButtonCommand}" Margin="0,0,30,0" HorizontalOptions="EndAndExpand" VerticalOptions="CenterAndExpand" Text="Сохранить"/>
+    </Grid>
+</ContentPage>

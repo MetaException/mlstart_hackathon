@@ -45,13 +45,15 @@ public partial class MainPageViewModel : ObservableObject
 
     public RelayCommand UploadButtonClickedCommand { get; }
 
-    public RelayCommand OpenFileCommand { get; }
+    public AsyncRelayCommand OpenFileCommand { get; }
 
     public RelayCommand SelectionChangedCommand { get; }
 
-    public RelayCommand SaveFileCommand { get; }
+    public AsyncRelayCommand SaveFileCommand { get; }
 
     public RelayCommand<string> SetFrameSettingIntervalCommand { get; }
+
+    public AsyncRelayCommand OpenSettingsCommand { get; }
 
     public MainPageViewModel(NetUtils netUtils, ConfigurationManager configuration)
     {
@@ -59,40 +61,28 @@ public partial class MainPageViewModel : ObservableObject
         _configuration = configuration;
 
         UploadButtonClickedCommand = new RelayCommand(async () => await UploadButtonClicked());
-        OpenFileCommand = new RelayCommand(async () => await OpenFile());
+
+        OpenFileCommand = new AsyncRelayCommand(OpenFile);
+        SaveFileCommand = new AsyncRelayCommand(SaveFile);
+        OpenSettingsCommand = new AsyncRelayCommand(OpenSettingsPage);
+
         SelectionChangedCommand = new RelayCommand(SelectionChangedHandler);
-        SaveFileCommand = new RelayCommand(async () => await SaveFile());
+
         OpenOriginalButtonClickedCommand = new RelayCommand(SwitchVideoView);
-        SetFrameSettingIntervalCommand = new RelayCommand<string>((type) => SetFrameSendingInterval(type));
 
         LoadFromConfiguration();
 
         _ = CheckServerConnection();
     }
 
-    private void LoadFromConfiguration()
+    private Task OpenSettingsPage()
     {
-        var frameConf = _configuration.RootSettings.API.FrameSendingDelay;
-        if (frameConf == "low")
-        {
-            interval = 0.05d;
-        }
-        else if (frameConf == "middle")
-        {
-            interval = 0.5d;
-        }
-        else
-        {
-            interval = 1d;
-        }
+        return Shell.Current.GoToAsync("SettingsPage");
     }
 
-    private void SetFrameSendingInterval(string type)
+    private void LoadFromConfiguration()
     {
-        _configuration.RootSettings.API.FrameSendingDelay = type;
-        _configuration.SaveJsonConfigChanges();
-
-        LoadFromConfiguration();
+        interval = Convert.ToDouble(_configuration.RootSettings.API.FrameSendingDelay);
     }
 
     private async Task CheckServerConnection() //TODO: cancellation token cancel когда выходишь со страницы
@@ -182,6 +172,8 @@ public partial class MainPageViewModel : ObservableObject
 
         IsConnected = await _netUtils.CheckServerConnection();
 
+        interval = _configuration.RootSettings.API.FrameSendingDelay; // Вынести в navigatedto
+
         try
         {
             var tempFilePath = SelectedItem.ProcessedFilePath = $"{Path.GetTempPath()}{Path.GetFileName(SelectedItem.OriginalFilePath)}-output.avi";
@@ -196,11 +188,11 @@ public partial class MainPageViewModel : ObservableObject
 
                 var fps = capture.Fps;
                 int frameCount = 0;
-                var frameInterval = (int)Math.Round(fps * interval); // Во время работы не получится изменить частоту
+                var frameInterval = fps * interval; // Во время работы не получится изменить частоту
 
                 var frameSize = new OpenCvSharp.Size(capture.FrameWidth, capture.FrameHeight);
 
-                var writer = new VideoWriter(tempFilePath, FourCC.XVID, fps, frameSize);
+                var writer = new VideoWriter(tempFilePath, FourCC.XVID, fps, frameSize );
 
                 Mat frame = new Mat();
 
@@ -213,7 +205,7 @@ public partial class MainPageViewModel : ObservableObject
                     if (frame.Empty())
                         break;
 
-                    if (frameCount % frameInterval == 0)
+                    if ((int)(frameCount % frameInterval) == 0)
                     {
                         bool isError = false;
 
@@ -265,12 +257,6 @@ public partial class MainPageViewModel : ObservableObject
                 }
 
                 writer.Release();
-            }
-
-            using (var fileStream = new FileStream(tempFilePath, FileMode.Open, FileAccess.Read))
-            {
-                var memoryStream = new MemoryStream();
-                fileStream.CopyTo(memoryStream);
             }
 
             CurrentVideoSource = MediaSource.FromFile(tempFilePath);

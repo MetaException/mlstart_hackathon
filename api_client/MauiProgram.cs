@@ -3,6 +3,7 @@ using api_client.Pages;
 using api_client.Utils;
 using api_client.ViewModels;
 using CommunityToolkit.Maui;
+using CommunityToolkit.Maui.Core;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
@@ -20,6 +21,7 @@ namespace api_client
                 .UseMauiApp<App>()
                 .UseMauiCommunityToolkitMediaElement()
                 .UseMauiCommunityToolkit()
+                .UseMauiCommunityToolkitCore()
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
@@ -37,8 +39,11 @@ namespace api_client
 
             builder.Services.AddSingleton<NetUtils>();
 
-            builder.Services.AddTransient<MainPage>();
-            builder.Services.AddTransient<MainPageViewModel>();
+            builder.Services.AddSingleton<MainPage>();
+            builder.Services.AddSingleton<MainPageViewModel>();
+
+            builder.Services.AddTransient<SettingsPage>();
+            builder.Services.AddTransient<SettingsPageViewModel>();
 
             return builder.Build();
         }
