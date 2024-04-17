@@ -5,7 +5,9 @@ using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OpenCvSharp;
+using System;
 using System.Collections.ObjectModel;
+using System.IO;
 using Point = OpenCvSharp.Point;
 
 namespace api_client.ViewModels;
@@ -57,6 +59,8 @@ public partial class MainPageViewModel : ObservableObject
 
     public MainPageViewModel(NetUtils netUtils, ConfigurationManager configuration)
     {
+        Log.Debug("Создание главной страницы.");
+
         _netUtils = netUtils;
         _configuration = configuration;
 
@@ -77,16 +81,22 @@ public partial class MainPageViewModel : ObservableObject
 
     private Task OpenSettingsPage()
     {
+        Log.Debug("Главная страница. Открытие страницы с настройками.");
+
         return Shell.Current.GoToAsync("SettingsPage");
     }
 
     private void LoadFromConfiguration()
     {
+        Log.Debug("Главная страница. Загрузка конфигурации.");
+
         interval = Convert.ToDouble(_configuration.RootSettings.API.FrameSendingDelay);
     }
 
     private async Task CheckServerConnection() //TODO: cancellation token cancel когда выходишь со страницы
     {
+        Log.Debug("Главная страница. Запуск сервиса проверки конфигурации.");
+
         while (true)
         {
             IsConnected = await _netUtils.CheckServerConnection();
@@ -140,6 +150,13 @@ public partial class MainPageViewModel : ObservableObject
         if (SelectedItem.ProcessedFilePath is null)
         {
             await App.Current.MainPage.DisplayAlert("Внимание", "Сначала обработайте файл", "OK");
+            Log.Debug($"Главная страница. Файл не обработан.");
+
+        }
+        else
+        {
+            Log.Debug($"Главная страница. Сохранение файла {SelectedItem.ProcessedFilePath}.");
+
         }
 
         await FileUtils.SaveFileByDialog(SelectedItem.ProcessedFilePath);
@@ -148,9 +165,15 @@ public partial class MainPageViewModel : ObservableObject
     private async Task OpenFile()
     {
         var files = await FileUtils.OpenFilesByDialog();
+        Log.Debug($"Главная страница. Выьор файлов.");
+
 
         if (!files.Any())
+        {
+            Log.Debug($"Главная страница. Файлы не выбраны.");
+
             return;
+        }
 
         foreach (var file in files)
         {
@@ -160,6 +183,8 @@ public partial class MainPageViewModel : ObservableObject
                 OriginalFilePath = file.FullPath,
                 IsOriginalFileOpened = true
             });
+            Log.Debug($"Главная страница. Выбран файл {file.FullPath}.");
+
         }
 
         SelectedItem = Imgs[^1]; // Устанавливаем активный элемент - последний открытый

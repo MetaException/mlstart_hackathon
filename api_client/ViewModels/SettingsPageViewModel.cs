@@ -15,6 +15,8 @@ public partial class SettingsPageViewModel : ObservableObject
 
     public SettingsPageViewModel(ConfigurationManager configuration)
     {
+        Log.Debug($"Создвние страницы настроек.");
+
         _configuration = configuration;
 
         UpdateSettingsButtonCommand = new AsyncRelayCommand(UpdateSettings);
@@ -24,11 +26,15 @@ public partial class SettingsPageViewModel : ObservableObject
 
     private void LoadFromConfiguration()
     {
+        Log.Debug($"Страница настроек. Загрузка конфигурации.");
+
         IntervalValue = _configuration.RootSettings.API.FrameSendingDelay;
     }
 
     private async Task UpdateSettings()
     {
+        Log.Debug($"Страница настроек. Обновление конфигурации.");
+
         double newValue = Math.Round(IntervalValue, 2);
 
         IntervalValue = newValue;
