@@ -29,7 +29,7 @@ public class NetUtils
             var response = await _client.GetAsync(ApiLinks.HealthLink);
             response.EnsureSuccessStatusCode();
 
-            Log.Information($"Successfully connected to {response.RequestMessage.RequestUri.AbsoluteUri}");
+            Log.Information($"Успешно подключено к {response.RequestMessage.RequestUri.AbsoluteUri}");
 
             return true;
         }
@@ -64,7 +64,7 @@ public class NetUtils
         }
         catch (Exception ex)
         {
-            Log.Error($"Произошла ошибка отправки изображения по пути {fileName}: {ex.Message}");
+            Log.Error($"Произошла ошибка отправки кадра видео по пути: {fileName}: {ex.Message}");
             throw;
         }
     }
@@ -75,7 +75,7 @@ public class NetUtils
         {
             // Задавать параметры можно только до отправки первого запроса
             _client = new HttpClient(_handler) { BaseAddress = new Uri($"http://{ip}:{port}") };
-            Log.Information($"Successfully changed base address to {_client.BaseAddress}");
+            Log.Information($"Базовый ip адресс изменён на {_client.BaseAddress}");
 
             return true;
         }

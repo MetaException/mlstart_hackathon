@@ -1,8 +1,6 @@
 ﻿using CommunityToolkit.Maui.Storage;
 using CommunityToolkit.Maui.Views;
 using Serilog;
-using System;
-using System.IO;
 using Windows.Media.Editing;
 using Windows.Storage;
 
@@ -29,19 +27,21 @@ public static class FileUtils
     public static async Task SaveFileByDialog(string sourcePath)
     {
         var file = OpenFileAsync(sourcePath);
-        Log.Debug($"Сохраняется файл {sourcePath}");
+        Log.Debug($"Сохранение файла по пути: {sourcePath}");
 
         await FileSaver.Default.SaveAsync(Path.GetFileName(sourcePath), file);
+        Log.Information("Файл сохранён");
     }
 
     public static MediaSource OpenVideoAsync(string path)
     {
-        Log.Debug($"Открывается файл {path}");
+        Log.Debug($"Открытие видео-файла по пути: {path}");
         return MediaSource.FromFile(path);  
     }
 
     public static Stream OpenFileAsync(string path)
     {
+        Log.Debug($"Открытие файла по пути: {path}");
         try
         {
             return File.OpenRead(path);
@@ -55,7 +55,7 @@ public static class FileUtils
 
     public static async Task<ImageSource> GetVideoThumbnailsAsync(FileResult file, int width, int height)
     {
-        Log.Debug($"Создание миниатюры для видео для файла {file.FullPath}");
+        Log.Debug($"Создание миниатюры для видео для файла по пути: {file.FullPath}");
 
         TimeSpan getFrameInTime = new TimeSpan(0, 0, 1);
 

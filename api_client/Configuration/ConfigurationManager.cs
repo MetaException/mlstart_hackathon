@@ -19,6 +19,8 @@ public class ConfigurationManager
     {
         var serializedConfig = JsonConvert.SerializeObject(RootSettings, Formatting.Indented);
         File.WriteAllText(FullPath, serializedConfig);
+
+        Log.Information("Файл конфигурации успешно обновлён");
     }
 
     private void CreateConfigurationFile()
@@ -33,7 +35,7 @@ public class ConfigurationManager
         // Проверяем, существует ли папка
         if (!Directory.Exists(directoryName))
         {
-            Log.Information("Папка с конфигурацией не найдена.");
+            Log.Warning("Папка с конфигурацией не найдена.");
             try
             {
                 Log.Information("Создание папки с конфигурацией.");
@@ -50,7 +52,7 @@ public class ConfigurationManager
         // Проверяем, существует ли файл
         if (!File.Exists(FullPath))
         {
-            Log.Information("Файл с конфигурацией не найден.");
+            Log.Warning("Файл с конфигурацией не найден.");
             try
             {
                 Log.Information("Создание файла с конфигурацией.");

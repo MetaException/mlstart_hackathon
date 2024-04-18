@@ -1,6 +1,7 @@
 ﻿using api_client.Configuration;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Serilog;
 
 namespace api_client.ViewModels;
 
@@ -15,7 +16,7 @@ public partial class SettingsPageViewModel : ObservableObject
 
     public SettingsPageViewModel(ConfigurationManager configuration)
     {
-        Log.Debug($"Создвние страницы настроек.");
+        Log.Debug($"Открытие страницы настроек.");
 
         _configuration = configuration;
 
@@ -29,6 +30,8 @@ public partial class SettingsPageViewModel : ObservableObject
         Log.Debug($"Страница настроек. Загрузка конфигурации.");
 
         IntervalValue = _configuration.RootSettings.API.FrameSendingDelay;
+
+        Log.Information("Данные из конфигурации успешно получены");
     }
 
     private async Task UpdateSettings()
@@ -42,6 +45,7 @@ public partial class SettingsPageViewModel : ObservableObject
 
         _configuration.SaveJsonConfigChanges();
 
+        Log.Information("Настройки успешно обновлены");
         await App.Current.MainPage.DisplayAlert("Внимание", "Настройки успешно обновлены", "OK");
     }
 }

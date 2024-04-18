@@ -5,9 +5,8 @@ using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OpenCvSharp;
-using System;
+using Serilog;
 using System.Collections.ObjectModel;
-using System.IO;
 using Point = OpenCvSharp.Point;
 
 namespace api_client.ViewModels;
@@ -59,7 +58,7 @@ public partial class MainPageViewModel : ObservableObject
 
     public MainPageViewModel(NetUtils netUtils, ConfigurationManager configuration)
     {
-        Log.Debug("Создание главной страницы.");
+        Log.Debug("Открытие главной страницы.");
 
         _netUtils = netUtils;
         _configuration = configuration;
@@ -95,7 +94,7 @@ public partial class MainPageViewModel : ObservableObject
 
     private async Task CheckServerConnection() //TODO: cancellation token cancel когда выходишь со страницы
     {
-        Log.Debug("Главная страница. Запуск сервиса проверки конфигурации.");
+        Log.Debug("Главная страница. Запуск потока проверки подключения к api сервису.");
 
         while (true)
         {
@@ -121,10 +120,12 @@ public partial class MainPageViewModel : ObservableObject
 
         try
         {
+            Log.Debug($"Главная страница. Установка нового активного видео файла по пути {SelectedItem.OriginalFilePath}");
             CurrentVideoSource = FileUtils.OpenVideoAsync(SelectedItem.OriginalFilePath);
         }
         catch
         {
+            Log.Warning($"Не удалось открыть активный видео файл по пути: {SelectedItem.OriginalFilePath}");
             Imgs.Remove(SelectedItem); // Удаляем файл, который не получилось открыть
         }
 
@@ -136,11 +137,21 @@ public partial class MainPageViewModel : ObservableObject
         {
             CurrentVideoSource = IsOriginalCurrentFileOpened ? FileUtils.OpenVideoAsync(SelectedItem.ProcessedFilePath) : FileUtils.OpenVideoAsync(SelectedItem.OriginalFilePath); // Краш при ошибке открытия
 
+            if (IsOriginalCurrentFileOpened)
+                Log.Warning($"Открыт оригинальный видео файл по пути: {SelectedItem.ProcessedFilePath}");
+            else
+                Log.Warning($"Открыт обработанный видео файл по пути: {SelectedItem.OriginalFilePath}");
+
             IsUploadButtonEnabled = IsOriginalCurrentFileOpened;
             IsOriginalCurrentFileOpened = SelectedItem.IsOriginalFileOpened = !IsOriginalCurrentFileOpened;
         }
         catch
         {
+            if (IsOriginalCurrentFileOpened)
+                Log.Warning($"Не удалось открыть оригинальный видео файл по пути: {SelectedItem.ProcessedFilePath}");
+            else
+                Log.Warning($"Не удалось открыть обработанный видео файл по пути: {SelectedItem.OriginalFilePath}");
+
             Imgs.Remove(SelectedItem); // Удаляем файл, который не получилось открыть
         }
     }
@@ -150,13 +161,11 @@ public partial class MainPageViewModel : ObservableObject
         if (SelectedItem.ProcessedFilePath is null)
         {
             await App.Current.MainPage.DisplayAlert("Внимание", "Сначала обработайте файл", "OK");
-            Log.Debug($"Главная страница. Файл не обработан.");
-
+            Log.Debug($"Главная страница. Файл не сохранён, так нет открытого видео");
         }
         else
         {
             Log.Debug($"Главная страница. Сохранение файла {SelectedItem.ProcessedFilePath}.");
-
         }
 
         await FileUtils.SaveFileByDialog(SelectedItem.ProcessedFilePath);
@@ -165,15 +174,14 @@ public partial class MainPageViewModel : ObservableObject
     private async Task OpenFile()
     {
         var files = await FileUtils.OpenFilesByDialog();
-        Log.Debug($"Главная страница. Выьор файлов.");
-
 
         if (!files.Any())
         {
             Log.Debug($"Главная страница. Файлы не выбраны.");
-
             return;
         }
+
+        Log.Debug($"Главная страница. Открыто {files.Count()} файлов");
 
         foreach (var file in files)
         {
@@ -183,8 +191,7 @@ public partial class MainPageViewModel : ObservableObject
                 OriginalFilePath = file.FullPath,
                 IsOriginalFileOpened = true
             });
-            Log.Debug($"Главная страница. Выбран файл {file.FullPath}.");
-
+            Log.Debug($"Главная страница. Открыт файл {file.FullPath}.");
         }
 
         SelectedItem = Imgs[^1]; // Устанавливаем активный элемент - последний открытый
@@ -192,6 +199,8 @@ public partial class MainPageViewModel : ObservableObject
 
     private async Task UploadButtonClicked()
     {
+        Log.Information("Главная страница. Обработка видео-файла");
+
         IsActivityIndicatorVisible = true;
         IsUploadButtonEnabled = false;
 
@@ -208,14 +217,17 @@ public partial class MainPageViewModel : ObservableObject
             {
                 if (!capture.IsOpened())
                 {
-                    throw new IOException($"Cannot open file {sourceFilePath}");
+                    throw new IOException($"Ошибка открытия файла по пути: {sourceFilePath}");
                 }
+                Log.Debug($"Главная страница. Открытие файла {sourceFilePath} для обработки");
 
                 var fps = capture.Fps;
                 int frameCount = 0;
                 var frameInterval = fps * interval; // Во время работы не получится изменить частоту
 
                 var frameSize = new OpenCvSharp.Size(capture.FrameWidth, capture.FrameHeight);
+
+                Log.Information($"FPS: {fps}, frame interval: {frameInterval}, размер кадра: {capture.FrameWidth}x{capture.FrameHeight}");
 
                 var writer = new VideoWriter(tempFilePath, FourCC.XVID, fps, frameSize );
 
@@ -245,18 +257,23 @@ public partial class MainPageViewModel : ObservableObject
                             }
                             catch (Exception)
                             {
+                                Log.Warning($"Ошибка обработки кадра {frameCount} видео, попытка: {attempts}");
                                 isError = true;
                             }
                         }
                         if (isError)
                         {
                             await App.Current.MainPage.DisplayAlert("Ошибка", "Произошла ошибка получения данных с сервера", "OK");
+                            Log.Warning("Ошибка обработки видео-файла: ошибка получения данных с сервреа");
                             break;
                         }
                     }
 
+                    Log.Debug($"Главная страница. Полученные данные о кадре: {frameCount}");
                     foreach (var info in frameInfos)
                     {
+                        Log.Debug($"Имя класса: {info.classname}, ID объекта: {info.objectid}, xbr: {info.xbr}, ybr: {info.ybr}, xtl: {info.xtl}, ytl: {info.ytl}");
+
                         Scalar color;
 
                         if (info.classname == "Standing")
@@ -284,6 +301,8 @@ public partial class MainPageViewModel : ObservableObject
                 writer.Release();
             }
 
+            Log.Information("Видео-файл успешно обработан");
+
             CurrentVideoSource = MediaSource.FromFile(tempFilePath);
 
             IsOriginalCurrentFileOpened = SelectedItem.IsOriginalFileOpened = false;
@@ -293,19 +312,23 @@ public partial class MainPageViewModel : ObservableObject
 
             IsUploadButtonEnabled = true;
         }
-        catch (IOException)
+        catch (IOException ex)
         {
             Imgs.Remove(SelectedItem); // Удаляем файл, который не получилось открыть. Удаление вызовет SelectionChangedHandler
 
             IsActivityIndicatorVisible = false;
             IsUploadButtonEnabled = true;
+
+            Log.Error(ex.Message);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // Проверить интернет, вывести ошибку на экран?? 
 
             IsActivityIndicatorVisible = false;
             IsUploadButtonEnabled = true;
+
+            Log.Error(ex.Message);
         }
     }
 }
