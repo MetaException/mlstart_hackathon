@@ -1,95 +1,25 @@
-﻿using apiclient.Model;
+﻿using api_client.Configuration;
+using api_client.Model;
+using OpenCvSharp;
 using Serilog;
-using System.Net;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Text.Json;
-using static apiclient.Model.ResponseEnum;
 
-namespace apiclient.Utils;
+namespace api_client.Utils;
 
 public class NetUtils
 {
-    private class TokenModel
-    {
-        public string token { get; set; }
-    }
-
     private readonly HttpClientHandler _handler;
+    private readonly ConfigurationManager _settings;
+
     private HttpClient _client;
 
-    public NetUtils()
+    public NetUtils(ConfigurationManager settings)
     {
         _handler = new HttpClientHandler();
-    }
 
-    public async Task<NetUtilsResponseCodes> AuthAsync(string url, string username, string password)
-    {
-        if (!await CheckServerConnection())
-        {
-            return NetUtilsResponseCodes.CANTCONNECTTOTHESERVER;
-        }
+        _settings = settings;
 
-        var newUser = new User
-        {
-            Login = username,
-            Password = password
-        };
-
-        try
-        {
-            var response = await _client.PostAsJsonAsync(url, newUser);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var responseContent = await response.Content.ReadAsStringAsync();
-
-                if (!string.IsNullOrEmpty(responseContent))
-                {
-                    var tokenResponse = JsonSerializer.Deserialize<TokenModel>(responseContent);
-
-                    if (tokenResponse != null && !string.IsNullOrEmpty(tokenResponse.token))
-                    {
-                        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenResponse.token);
-
-                        Log.Information($"Successfull authorization on {response.RequestMessage.RequestUri.AbsoluteUri}");
-                        return NetUtilsResponseCodes.OK;
-                    }
-                }
-            }
-            else if (response.StatusCode == HttpStatusCode.Conflict)
-            {
-                Log.Warning($"Registration failed. User is already registered on {response.RequestMessage.RequestUri.AbsoluteUri}");
-                return NetUtilsResponseCodes.USERISALREDYEXISTS;
-            }
-            else if (response.StatusCode == HttpStatusCode.BadRequest)
-            {
-                Log.Warning($"Registration failed. Invalid login or password on {response.RequestMessage.RequestUri.AbsoluteUri}");
-                return NetUtilsResponseCodes.BADREQUEST;
-            }
-            else if (response.StatusCode == HttpStatusCode.Unauthorized)
-            {
-                Log.Warning($"Login failed. Incorrect login or password on {response.RequestMessage.RequestUri.AbsoluteUri}");
-                return NetUtilsResponseCodes.UNATHROIZED;
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex.Message);
-        }
-
-        Log.Warning($"Recieved error code from {_client.BaseAddress}");
-        return NetUtilsResponseCodes.ERROR;
-    }
-
-    public Task<NetUtilsResponseCodes> LoginAsync(string username, string password)
-    {
-        return AuthAsync(ApiLinks.LoginLink, username, password);
-    }
-
-    public Task<NetUtilsResponseCodes> RegisterAsync(string username, string password)
-    {
-        return AuthAsync(ApiLinks.RegisterLink, username, password);
+        SetIpAndPort(_settings.RootSettings.API.Host, _settings.RootSettings.API.Port); // TODO: учесть что в конфиге могут стоять некорректные значения
     }
 
     public async Task<bool> CheckServerConnection()
@@ -99,7 +29,7 @@ public class NetUtils
             var response = await _client.GetAsync(ApiLinks.HealthLink);
             response.EnsureSuccessStatusCode();
 
-            Log.Information($"Successfully connected to {response.RequestMessage.RequestUri.AbsoluteUri}");
+            Log.Information($"Успешно подключено к {response.RequestMessage.RequestUri.AbsoluteUri}");
 
             return true;
         }
@@ -110,24 +40,33 @@ public class NetUtils
         return false;
     }
 
-    public async Task<ImageInfo> SendImageAsync(Stream fileStream, string fileName)
+    public async Task<List<FrameInfo>> SendVideoFrameAsync(Mat frame, string fileName)
     {
         try
         {
             var content = new MultipartFormDataContent
             {
-                { new StreamContent(fileStream), "image", fileName}
+                { new ByteArrayContent(frame.ToBytes()), "image", fileName}
             };
 
             var response = await _client.PostAsync(ApiLinks.DataLink, content);
 
-            return await response.Content.ReadFromJsonAsync<ImageInfo>();
+            List<FrameInfo> frameInfos;
+            using (var stream = await response.Content.ReadAsStreamAsync())
+            {
+                frameInfos = await JsonSerializer.DeserializeAsync<List<FrameInfo>>(stream);
+            }
+
+            if (frameInfos is null)
+                throw new ArgumentNullException(nameof(frameInfos), "Сайт вернул null");
+
+            return frameInfos;
         }
         catch (Exception ex)
         {
-            Log.Error(ex.Message);
+            Log.Error($"Произошла ошибка отправки кадра видео по пути: {fileName}: {ex.Message}");
+            throw;
         }
-        return null;
     }
 
     public bool SetIpAndPort(string ip, string port)
@@ -136,7 +75,7 @@ public class NetUtils
         {
             // Задавать параметры можно только до отправки первого запроса
             _client = new HttpClient(_handler) { BaseAddress = new Uri($"http://{ip}:{port}") };
-            Log.Information($"Successfully changed base address to {_client.BaseAddress}");
+            Log.Information($"Базовый ip адресс изменён на {_client.BaseAddress}");
 
             return true;
         }

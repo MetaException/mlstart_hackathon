@@ -1,4 +1,4 @@
-﻿namespace apiclient
+﻿namespace api_client
 {
     public partial class App : Application
     {

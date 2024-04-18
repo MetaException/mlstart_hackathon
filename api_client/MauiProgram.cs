@@ -1,11 +1,14 @@
-﻿using apiclient.Pages;
-using apiclient.Utils;
-using apiclient.ViewModels;
+﻿using api_client.Configuration;
+using api_client.Pages;
+using api_client.Utils;
+using api_client.ViewModels;
+using CommunityToolkit.Maui;
+using CommunityToolkit.Maui.Core;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
 
-namespace apiclient
+namespace api_client
 {
     public static class MauiProgram
     {
@@ -16,6 +19,9 @@ namespace apiclient
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>()
+                .UseMauiCommunityToolkitMediaElement()
+                .UseMauiCommunityToolkit()
+                .UseMauiCommunityToolkitCore()
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
@@ -28,16 +34,16 @@ namespace apiclient
 
             CreateLogger();
 
+            // Позволит заменять конфигурацию прямо на ходу в коде
+            builder.Services.AddSingleton<ConfigurationManager>(ConfigurationManager.SetupConfiguration());
+
             builder.Services.AddSingleton<NetUtils>();
 
-            builder.Services.AddTransient<ConnectionPage>();
-            builder.Services.AddTransient<ConnectionPageViewModel>();
+            builder.Services.AddSingleton<MainPage>();
+            builder.Services.AddSingleton<MainPageViewModel>();
 
-            builder.Services.AddTransient<AuthPage>();
-            builder.Services.AddTransient<AuthPageViewModel>();
-
-            builder.Services.AddTransient<MainPage>();
-            builder.Services.AddTransient<MainPageViewModel>();
+            builder.Services.AddTransient<SettingsPage>();
+            builder.Services.AddTransient<SettingsPageViewModel>();
 
             return builder.Build();
         }
@@ -46,7 +52,7 @@ namespace apiclient
         {
             Log.Logger = new LoggerConfiguration()
                 .Enrich.FromLogContext()
-                .Enrich.WithProperty("ClientHash", СlientId) 
+                .Enrich.WithProperty("ClientHash", СlientId)
 
                 .WriteTo.Logger(l => l
                     .Filter.ByIncludingOnly(e => e.Level == LogEventLevel.Debug)

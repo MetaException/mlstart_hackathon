@@ -1,28 +1,43 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="apiclient.Pages.MainPage">
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:viewmodel="clr-namespace:api_client.ViewModels"
+             xmlns:model="clr-namespace:api_client.Model"
+             x:DataType="viewmodel:MainPageViewModel"
+             x:Class="api_client.Pages.MainPage">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <toolkit:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+            <toolkit:BoolToObjectConverter x:Key="ConnectionStatusColorConverter" TrueObject="{x:Static Colors.Green}" FalseObject="{x:Static Colors.Red}"/>
+            <toolkit:BoolToObjectConverter x:Key="ConnectionStatusTextConverter" TrueObject="Подключено" FalseObject="Отключено" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
 
     <ContentPage.MenuBarItems>
         <MenuBarItem Text="Файл">
-            <MenuFlyoutItem Text="Открыть" Command="{Binding OpenFileCommand}"/>
+            <MenuFlyoutItem Text="Открыть" Clicked="OpenFileClicked"/>
+            <MenuFlyoutItem Text="Сохранить" Clicked="SaveFileClicked"/>
+        </MenuBarItem>
+        <MenuBarItem Text="Опции">
+            <MenuFlyoutItem Text="Настройки" Clicked="OpenSettingsClicked"/>
         </MenuBarItem>
     </ContentPage.MenuBarItems>
 
     <Grid VerticalOptions="FillAndExpand">
-
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="0.3*"/>
             <ColumnDefinition Width="0.7*"/>
         </Grid.ColumnDefinitions>
 
         <Border Stroke="DarkGray" StrokeThickness="0.5"  Grid.Column="0">
-            <CollectionView Margin="1,0,1,0" ItemSizingStrategy="MeasureFirstItem" SelectedItem="{Binding SelectedItem}" SelectionChangedCommandParameter="{Binding SelectedItem, Source={RelativeSource Self}}" SelectionChangedCommand="{Binding SelectionChangedCommand}" ItemsSource="{Binding Imgs}" SelectionMode="Single" ItemsLayout="VerticalGrid,4">
+            <CollectionView x:Name="collectionView" Margin="1,0,1,0" ItemSizingStrategy="MeasureFirstItem" SelectedItem="{Binding SelectedItem}" SelectionChangedCommandParameter="{Binding SelectedItem, Source={RelativeSource Self}}" SelectionChangedCommand="{Binding SelectionChangedCommand}" ItemsSource="{Binding Imgs}" SelectionMode="Single" ItemsLayout="VerticalGrid,4">
                 <CollectionView.ItemTemplate>
-                    <DataTemplate>
+                    <DataTemplate x:DataType="model:VideoItem">
                         <Image Margin="5"
                               Aspect="AspectFill"
-                              Source="{Binding ItemImageSource}"/>
+                              Source="{Binding Thumbnail}" />
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
@@ -35,7 +50,8 @@
                     <RowDefinition Height="0.3*"/>
                 </Grid.RowDefinitions>
 
-                <Image Grid.Row="0" Source="{Binding ImgSource}" Aspect="AspectFit"/>
+                <toolkit:MediaElement Grid.Row="0" Source="{Binding CurrentVideoSource}"
+                    ShouldShowPlaybackControls="True" Aspect="AspectFill"/>
 
                 <Border Stroke="DarkGray" StrokeThickness="0.5"  Grid.Row="1">
                     <Grid Grid.Row="1">
@@ -47,20 +63,18 @@
 
                         <HorizontalStackLayout HorizontalOptions="CenterAndExpand" Grid.Column="0">
                             <Label FontSize="Medium" VerticalOptions="CenterAndExpand" Text="Статус:"/>
-                            <Label FontSize="Medium" Margin="20,0,0,0" TextColor="{Binding StatusColor}" VerticalOptions="CenterAndExpand" Text="{Binding ConnectionStatus}"/>
+                            <Label FontSize="Medium" Margin="20,0,0,0" TextColor="{Binding IsConnected, Converter={StaticResource ConnectionStatusColorConverter}}" VerticalOptions="CenterAndExpand" Text="{Binding IsConnected, Converter={StaticResource ConnectionStatusTextConverter}}"/>
                         </HorizontalStackLayout>
-                        <Button IsEnabled="{Binding IsUploadButtonEnabled}" VerticalOptions="CenterAndExpand" IsVisible="{Binding IsUploadButtonVisible}" HorizontalOptions="CenterAndExpand" Grid.Column="1" Text="Загрузить изображение" Command="{Binding UploadButtonClickedCommand}" />
 
-                        <StackLayout IsVisible="{Binding IsImageDetailsVisible}" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand" Grid.Column="2">
-                            <Label Text="{Binding ImageWidth}"/>
-                            <Label Text="{Binding ImageHeight}"/>
-                            <Label Text="{Binding ImageChannels}"/>
-                        </StackLayout>
+                        <HorizontalStackLayout Grid.Column="1" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand">
+                            <Button IsEnabled="{Binding IsUploadButtonEnabled}" Text="Загрузить видео" Command="{Binding UploadButtonClickedCommand}" />
+                            <ActivityIndicator Margin="10,0,0,0" IsRunning="True" IsVisible="{Binding IsActivityIndicatorVisible}" />
+                        </HorizontalStackLayout>
+                        <Button IsEnabled="{Binding IsOpenOriginalButtonEnabled}" IsVisible="{Binding IsOriginalCurrentFileOpened, Converter={StaticResource InvertedBoolConverter}}" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand" Grid.Column="2" Text="Открыть оригинальное видео" Command="{Binding OpenOriginalButtonClickedCommand}" />
+                        <Button IsEnabled="{Binding IsOpenOriginalButtonEnabled}" IsVisible="{Binding IsOriginalCurrentFileOpened}" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand" Grid.Column="2" Text="Открыть обработанное видео" Command="{Binding OpenOriginalButtonClickedCommand}" />
 
                     </Grid>
                 </Border>
-                
-
 
             </Grid>
         </Border>

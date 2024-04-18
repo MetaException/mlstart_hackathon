@@ -1,6 +1,6 @@
-﻿using apiclient.Pages;
+﻿using api_client.Pages;
 
-namespace apiclient
+namespace api_client
 {
     public partial class AppShell : Shell
     {
@@ -8,8 +8,8 @@ namespace apiclient
         {
             InitializeComponent();
 
-            Routing.RegisterRoute("AuthPage", typeof(AuthPage));
             Routing.RegisterRoute("MainPage", typeof(MainPage));
+            Routing.RegisterRoute("MainPage/SettingsPage", typeof(SettingsPage));
         }
     }
 }
