@@ -5,7 +5,8 @@
              xmlns:viewmodel="clr-namespace:api_client.ViewModels"
              xmlns:model="clr-namespace:api_client.Model"
              x:DataType="viewmodel:MainPageViewModel"
-             x:Class="api_client.Pages.MainPage">
+             x:Class="api_client.Pages.MainPage"
+             Shell.NavBarIsVisible="True">
 
     <ContentPage.Resources>
         <ResourceDictionary>
@@ -14,6 +15,15 @@
             <toolkit:BoolToObjectConverter x:Key="ConnectionStatusTextConverter" TrueObject="Подключено" FalseObject="Отключено" />
         </ResourceDictionary>
     </ContentPage.Resources>
+
+    <Shell.TitleView>
+        <Grid HorizontalOptions="FillAndExpand">
+            <HorizontalStackLayout>
+                <Label HorizontalOptions="Start" VerticalOptions="Center" FontSize="Body" Margin="15,0,0,6" Text="Статус:"/>
+                <Label VerticalOptions="Center" FontSize="Default" Margin="10,0,0,6" TextColor="{Binding IsConnected, Converter={StaticResource ConnectionStatusColorConverter}}" Text="{Binding IsConnected, Converter={StaticResource ConnectionStatusTextConverter}}"/>
+            </HorizontalStackLayout>
+        </Grid>
+    </Shell.TitleView>
 
     <ContentPage.MenuBarItems>
         <MenuBarItem Text="Файл">
@@ -60,11 +70,6 @@
                             <ColumnDefinition Width="0.3*"/>
                             <ColumnDefinition Width="0.3*"/>
                         </Grid.ColumnDefinitions>
-
-                        <HorizontalStackLayout HorizontalOptions="CenterAndExpand" Grid.Column="0">
-                            <Label FontSize="Medium" VerticalOptions="CenterAndExpand" Text="Статус:"/>
-                            <Label FontSize="Medium" Margin="20,0,0,0" TextColor="{Binding IsConnected, Converter={StaticResource ConnectionStatusColorConverter}}" VerticalOptions="CenterAndExpand" Text="{Binding IsConnected, Converter={StaticResource ConnectionStatusTextConverter}}"/>
-                        </HorizontalStackLayout>
 
                         <HorizontalStackLayout Grid.Column="1" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand">
                             <Button IsEnabled="{Binding IsUploadButtonEnabled}" Text="Загрузить видео" Command="{Binding UploadButtonClickedCommand}" />
