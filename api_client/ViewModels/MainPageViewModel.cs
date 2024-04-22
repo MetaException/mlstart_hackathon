@@ -1,14 +1,13 @@
 ﻿using api_client.Configuration;
 using api_client.Model;
 using api_client.Utils;
-using CommunityToolkit.Maui.Storage;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Maui.Storage;
 using OpenCvSharp;
 using Serilog;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using Point = OpenCvSharp.Point;
 
 namespace api_client.ViewModels;
@@ -49,6 +48,9 @@ public partial class MainPageViewModel : ObservableObject
 
     [ObservableProperty]
     private MediaElement _videoPlayer;
+
+    [ObservableProperty]
+    private ImageSource _imagePlayerSource;
 
     public RelayCommand OpenOriginalButtonClickedCommand { get; }
 
@@ -215,6 +217,9 @@ public partial class MainPageViewModel : ObservableObject
 
     private async Task SaveFile()
     {
+        if (SelectedItem is null)
+            return;
+
         if (SelectedItem.ProcessedFilePath is null)
         {
             await App.Current.MainPage.DisplayAlert("Внимание", "Сначала обработайте файл", "OK");
@@ -247,7 +252,7 @@ public partial class MainPageViewModel : ObservableObject
                 Thumbnail = await FileUtils.GetVideoThumbnailsAsync(file, 640, 360),
                 OriginalFilePath = file.FullPath,
                 IsOriginalFileOpened = true,
-                TimeCodes = new ObservableCollection<TimeCodeModel>() 
+                TimeCodes = new ObservableCollection<TimeCodeModel>()
             });
             Log.Debug($"Главная страница. Открыт файл {file.FullPath}.");
         }
@@ -289,7 +294,7 @@ public partial class MainPageViewModel : ObservableObject
 
                 Log.Information($"FPS: {fps}, frame interval: {frameInterval}, размер кадра: {capture.FrameWidth}x{capture.FrameHeight}");
 
-                var writer = new VideoWriter(tempFilePath, FourCC.XVID, fps, frameSize );
+                var writer = new VideoWriter(tempFilePath, FourCC.XVID, fps, frameSize);
 
                 Mat frame = new Mat();
 
@@ -297,6 +302,8 @@ public partial class MainPageViewModel : ObservableObject
 
                 while (true)
                 {
+                    Stopwatch stopwatch = Stopwatch.StartNew();
+
                     capture.Read(frame);
 
                     if (frame.Empty())
@@ -311,7 +318,7 @@ public partial class MainPageViewModel : ObservableObject
                             try
                             {
                                 frameInfos = await _netUtils.SendVideoFrameAsync(frame, sourceFilePath); //TODO: если выбрать другой файл по время обработки??
-                                CurrentVideoSource = MediaSource.FromFile(tempFilePath);
+                                //CurrentVideoSource = MediaSource.FromFile(tempFilePath);
                                 isError = false;
                                 break;
                             }
@@ -338,7 +345,7 @@ public partial class MainPageViewModel : ObservableObject
                         {
                             if (classname == "Standing" && info.classname == "Lying") // Стоял -> упал
                             {
-                                SelectedItem.TimeCodes.Add(new TimeCodeModel() {TimeCode = Math.Round(frameCount / fps, 2) });
+                                SelectedItem.TimeCodes.Add(new TimeCodeModel() { TimeCode = Math.Round(frameCount / fps, 2) });
                                 objectsStateStory.Remove(info.objectid);
                             }
                         }
@@ -367,10 +374,22 @@ public partial class MainPageViewModel : ObservableObject
                         Cv2.PutText(frame, info.classname, new Point(info.xtl + 100, info.ytl - 5), HersheyFonts.HersheySimplex, 1, color, 2); // TODO: всегда вмещать в экран10
                     }
 
+                    byte[] imageBytes = frame.ToBytes();
+                    ImagePlayerSource = ImageSource.FromStream(() => new MemoryStream(imageBytes));
+
+                    stopwatch.Stop();
+                    int processingTimeMs = (int)stopwatch.ElapsedMilliseconds;
+
+                    // Задержка между кадрами с учетом времени обработки кадра
+                    int delay = (int)((1000 / fps * 2) - processingTimeMs);
+                    if (delay > 0)
+                        await Task.Delay(delay);
+
                     frameCount++;
                     writer.Write(frame);
                 }
 
+                frame.Release();
                 writer.Release();
             }
 
