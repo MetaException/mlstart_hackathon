@@ -24,6 +24,12 @@ public static class FileUtils
         return results;
     }
 
+    public static async Task SaveFileStreamByDialog(string fileName, Stream stream)
+    {
+        await FileSaver.Default.SaveAsync(fileName, stream);
+        Log.Information("Файл сохранён");
+    }
+
     public static async Task SaveFileByDialog(string sourcePath)
     {
         var file = OpenFileAsync(sourcePath);

@@ -1,9 +1,11 @@
 ﻿using api_client.Configuration;
 using api_client.Model;
 using api_client.Utils;
+using CommunityToolkit.Maui.Storage;
 using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Maui.Storage;
 using OpenCvSharp;
 using Serilog;
 using System.Collections.ObjectModel;
@@ -42,9 +44,15 @@ public partial class MainPageViewModel : ObservableObject
     [ObservableProperty]
     private bool _isConnected;
 
+    [ObservableProperty]
+    private TimeCodeModel _selectedTimeCode;
+
+    [ObservableProperty]
+    private MediaElement _videoPlayer;
+
     public RelayCommand OpenOriginalButtonClickedCommand { get; }
 
-    public RelayCommand UploadButtonClickedCommand { get; }
+    public AsyncRelayCommand UploadButtonClickedCommand { get; }
 
     public AsyncRelayCommand OpenFileCommand { get; }
 
@@ -56,6 +64,10 @@ public partial class MainPageViewModel : ObservableObject
 
     public AsyncRelayCommand OpenSettingsCommand { get; }
 
+    public AsyncRelayCommand TimeCodeSelectionChangedCommand { get; }
+
+    public AsyncRelayCommand SaveFrameCommand { get; }
+
     public MainPageViewModel(NetUtils netUtils, ConfigurationManager configuration)
     {
         Log.Debug("Открытие главной страницы.");
@@ -63,19 +75,64 @@ public partial class MainPageViewModel : ObservableObject
         _netUtils = netUtils;
         _configuration = configuration;
 
-        UploadButtonClickedCommand = new RelayCommand(async () => await UploadButtonClicked());
-
+        UploadButtonClickedCommand = new AsyncRelayCommand(UploadButtonClicked);
         OpenFileCommand = new AsyncRelayCommand(OpenFile);
         SaveFileCommand = new AsyncRelayCommand(SaveFile);
         OpenSettingsCommand = new AsyncRelayCommand(OpenSettingsPage);
-
         SelectionChangedCommand = new RelayCommand(SelectionChangedHandler);
-
         OpenOriginalButtonClickedCommand = new RelayCommand(SwitchVideoView);
+        TimeCodeSelectionChangedCommand = new AsyncRelayCommand(TimeCodeSelectionChanged);
+        SaveFrameCommand = new AsyncRelayCommand(SaveFrame);
 
         LoadFromConfiguration();
 
         _ = CheckServerConnection();
+    }
+
+    private async Task TimeCodeSelectionChanged()
+    {
+        if (SelectedTimeCode != null) // BUG: Если выбрать видео в списке, то второй раз уже не будет работать
+        {
+            await VideoPlayer.SeekTo(TimeSpan.FromSeconds(SelectedTimeCode.TimeCode));
+            SelectedTimeCode = null; // ???
+        }
+    }
+
+    private async Task SaveFrame()
+    {
+        if (SelectedItem == null)
+        {
+            return;
+        }
+
+        string path = IsOriginalCurrentFileOpened ? SelectedItem.OriginalFilePath : SelectedItem.ProcessedFilePath; // Краш при ошибке открытия
+
+        using (var capture = new VideoCapture(path))
+        {
+            if (!capture.IsOpened())
+            {
+                throw new IOException($"Ошибка открытия файла");
+            }
+
+            capture.Set(VideoCaptureProperties.PosMsec, VideoPlayer.Position.TotalMilliseconds);
+
+            Mat frame = new Mat();
+
+            capture.Read(frame);
+
+            if (frame.Empty())
+            {
+                return; //...
+            }
+
+            using (MemoryStream memoryStream = new MemoryStream())
+            {
+                frame.ToMemoryStream(".jpg").CopyTo(memoryStream);
+                await FileUtils.SaveFileStreamByDialog(".jpg", memoryStream);
+            }
+
+            frame.Release();
+        }
     }
 
     private Task OpenSettingsPage()
@@ -189,7 +246,8 @@ public partial class MainPageViewModel : ObservableObject
             {
                 Thumbnail = await FileUtils.GetVideoThumbnailsAsync(file, 640, 360),
                 OriginalFilePath = file.FullPath,
-                IsOriginalFileOpened = true
+                IsOriginalFileOpened = true,
+                TimeCodes = new ObservableCollection<TimeCodeModel>() 
             });
             Log.Debug($"Главная страница. Открыт файл {file.FullPath}.");
         }
@@ -207,6 +265,8 @@ public partial class MainPageViewModel : ObservableObject
         IsConnected = await _netUtils.CheckServerConnection();
 
         interval = _configuration.RootSettings.API.FrameSendingDelay; // Вынести в navigatedto
+
+        Dictionary<double, string> objectsStateStory = new Dictionary<double, string>();
 
         try
         {
@@ -273,6 +333,19 @@ public partial class MainPageViewModel : ObservableObject
                     foreach (var info in frameInfos)
                     {
                         Log.Debug($"Имя класса: {info.classname}, ID объекта: {info.objectid}, xbr: {info.xbr}, ybr: {info.ybr}, xtl: {info.xtl}, ytl: {info.ytl}");
+
+                        if (objectsStateStory.TryGetValue(info.objectid, out var classname))
+                        {
+                            if (classname == "Standing" && info.classname == "Lying") // Стоял -> упал
+                            {
+                                SelectedItem.TimeCodes.Add(new TimeCodeModel() {TimeCode = Math.Round(frameCount / fps, 2) });
+                                objectsStateStory.Remove(info.objectid);
+                            }
+                        }
+                        else
+                        {
+                            objectsStateStory.Add(info.objectid, info.classname);
+                        }
 
                         Scalar color;
 

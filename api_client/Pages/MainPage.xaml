@@ -28,10 +28,12 @@
     <ContentPage.MenuBarItems>
         <MenuBarItem Text="Файл">
             <MenuFlyoutItem Text="Открыть" Clicked="OpenFileClicked"/>
-            <MenuFlyoutItem Text="Сохранить" Clicked="SaveFileClicked"/>
+            <MenuFlyoutItem Text="Сохранить видео" Clicked="SaveFileClicked"/>
+            <MenuFlyoutItem Text="Сохранить скриншот видео" Clicked="SaveFrameClicked"/>
         </MenuBarItem>
         <MenuBarItem Text="Опции">
             <MenuFlyoutItem Text="Настройки" Clicked="OpenSettingsClicked"/>
+            <MenuFlyoutItem Text="Журнал" Clicked="OpenSettingsClicked"/>
         </MenuBarItem>
     </ContentPage.MenuBarItems>
 
@@ -60,10 +62,10 @@
                     <RowDefinition Height="0.3*"/>
                 </Grid.RowDefinitions>
 
-                <toolkit:MediaElement Grid.Row="0" Source="{Binding CurrentVideoSource}"
+                <toolkit:MediaElement x:Name="VideoPlayer" Grid.Row="0" Source="{Binding CurrentVideoSource}"
                     ShouldShowPlaybackControls="True" Aspect="AspectFill"/>
 
-                <Border Stroke="DarkGray" StrokeThickness="0.5"  Grid.Row="1">
+                <Border Stroke="DarkGray" StrokeThickness="0.5" Grid.Row="1">
                     <Grid Grid.Row="1">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="0.3*"/>
@@ -71,12 +73,22 @@
                             <ColumnDefinition Width="0.3*"/>
                         </Grid.ColumnDefinitions>
 
+                        <Label Grid.Column="2" Margin="0,10,0,0" HorizontalTextAlignment="Center" Text="Тайм-коды падения"/>
+                        <CollectionView Grid.Column="2" VerticalScrollBarVisibility="Always" Margin="0,30,0,0" SelectedItem="{Binding SelectedTimeCode}" SelectionChangedCommandParameter="{Binding SelectedItem, Source={RelativeSource Self}}" SelectionChangedCommand="{Binding TimeCodeSelectionChangedCommand}" ItemsSource="{Binding SelectedItem.TimeCodes, Source={x:Reference collectionView}}" SelectionMode="Single" ItemsLayout="VerticalGrid">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="model:TimeCodeModel">
+                                    <Label Text="{Binding TimeCode}"/>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+
                         <HorizontalStackLayout Grid.Column="1" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand">
                             <Button IsEnabled="{Binding IsUploadButtonEnabled}" Text="Загрузить видео" Command="{Binding UploadButtonClickedCommand}" />
                             <ActivityIndicator Margin="10,0,0,0" IsRunning="True" IsVisible="{Binding IsActivityIndicatorVisible}" />
                         </HorizontalStackLayout>
-                        <Button IsEnabled="{Binding IsOpenOriginalButtonEnabled}" IsVisible="{Binding IsOriginalCurrentFileOpened, Converter={StaticResource InvertedBoolConverter}}" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand" Grid.Column="2" Text="Открыть оригинальное видео" Command="{Binding OpenOriginalButtonClickedCommand}" />
-                        <Button IsEnabled="{Binding IsOpenOriginalButtonEnabled}" IsVisible="{Binding IsOriginalCurrentFileOpened}" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand" Grid.Column="2" Text="Открыть обработанное видео" Command="{Binding OpenOriginalButtonClickedCommand}" />
+                        
+                        <Button IsEnabled="{Binding IsOpenOriginalButtonEnabled}" IsVisible="{Binding IsOriginalCurrentFileOpened, Converter={StaticResource InvertedBoolConverter}}" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand" Grid.Column="0" Text="Открыть оригинальное видео" Command="{Binding OpenOriginalButtonClickedCommand}" />
+                        <Button IsEnabled="{Binding IsOpenOriginalButtonEnabled}" IsVisible="{Binding IsOriginalCurrentFileOpened}" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand" Grid.Column="0" Text="Открыть обработанное видео" Command="{Binding OpenOriginalButtonClickedCommand}" />
 
                     </Grid>
                 </Border>

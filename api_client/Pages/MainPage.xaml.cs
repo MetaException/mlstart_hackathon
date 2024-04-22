@@ -7,6 +7,7 @@ namespace api_client.Pages
         public MainPage(MainPageViewModel viewModel)
         {
             InitializeComponent();
+            viewModel.VideoPlayer = VideoPlayer; // TODO: найти как сделать в Mvvm 
             this.BindingContext = viewModel;
         }
 
@@ -27,6 +28,11 @@ namespace api_client.Pages
         private void OpenSettingsClicked(object sender, EventArgs e)
         {
             ((MainPageViewModel)BindingContext).OpenSettingsCommand.Execute(null);
+        }
+
+        private void SaveFrameClicked(object sender, EventArgs e)
+        {
+            ((MainPageViewModel)BindingContext).SaveFrameCommand.Execute(null);
         }
     }
 }
