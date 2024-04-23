@@ -1,0 +1,6 @@
+{
+    "name_of_classifier": "resnet152",
+    "path_to_classifier": "resnet152_best.pth",
+    "name_of_detector": "yolov8m",
+    "path_to_detector": "yolov8m_finetuned_epoch_11.pt"
+}
