@@ -22,6 +22,23 @@ public class NetUtils
         SetIpAndPort(_settings.RootSettings.API.Host, _settings.RootSettings.API.Port); // TODO: учесть что в конфиге могут стоять некорректные значения
     }
 
+    public async Task<bool> ResetTrackingParameters()
+    {
+        try
+        {
+            var response = await _client.GetAsync(ApiLinks.ResetLink);
+            response.EnsureSuccessStatusCode();
+
+            Log.Information("Успешно сброшены параметры трекинга");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex.Message);
+        }
+        return false;
+    }
+
     public async Task<bool> CheckServerConnection()
     {
         try

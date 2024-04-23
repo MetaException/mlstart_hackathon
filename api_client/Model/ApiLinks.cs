@@ -4,4 +4,5 @@ public static class ApiLinks
 {
     public static readonly string HealthLink = "health";
     public static readonly string DataLink = "file";
+    public static readonly string ResetLink = "reset";
 }

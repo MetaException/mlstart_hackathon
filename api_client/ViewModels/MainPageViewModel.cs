@@ -109,33 +109,40 @@ public partial class MainPageViewModel : ObservableObject
 
         string path = IsOriginalCurrentFileOpened ? SelectedItem.OriginalFilePath : SelectedItem.ProcessedFilePath; // Краш при ошибке открытия
 
-        using (var capture = new VideoCapture(path))
+        try
         {
-            if (!capture.IsOpened())
+            using (var capture = new VideoCapture(path))
             {
-                throw new IOException($"Ошибка открытия файла");
+                if (!capture.IsOpened())
+                {
+                    throw new IOException($"Ошибка открытия файла");
+                }
+
+                capture.Set(VideoCaptureProperties.PosMsec, VideoPlayer.Position.TotalMilliseconds);
+
+                Mat frame = new Mat();
+
+                capture.Read(frame);
+
+                if (frame.Empty())
+                {
+                    return; //...
+                }
+
+                using (MemoryStream memoryStream = new MemoryStream())
+                {
+                    frame.ToMemoryStream(".jpg").CopyTo(memoryStream);
+                    await FileUtils.SaveFileStreamByDialog(".jpg", memoryStream);
+                }
+
+                frame.Release();
             }
-
-            capture.Set(VideoCaptureProperties.PosMsec, VideoPlayer.Position.TotalMilliseconds);
-
-            Mat frame = new Mat();
-
-            capture.Read(frame);
-
-            if (frame.Empty())
-            {
-                return; //...
-            }
-
-            using (MemoryStream memoryStream = new MemoryStream())
-            {
-                frame.ToMemoryStream(".jpg").CopyTo(memoryStream);
-                await FileUtils.SaveFileStreamByDialog(".jpg", memoryStream);
-            }
-
-            frame.Release();
         }
-    }
+        catch (Exception ex)
+        {
+            Log.Error(ex.Message);
+        }
+   }
 
     private Task OpenSettingsPage()
     {
@@ -197,9 +204,9 @@ public partial class MainPageViewModel : ObservableObject
             CurrentVideoSource = IsOriginalCurrentFileOpened ? FileUtils.OpenVideoAsync(SelectedItem.ProcessedFilePath) : FileUtils.OpenVideoAsync(SelectedItem.OriginalFilePath); // Краш при ошибке открытия
 
             if (IsOriginalCurrentFileOpened)
-                Log.Warning($"Открыт оригинальный видео файл по пути: {SelectedItem.ProcessedFilePath}");
+                Log.Debug($"Открыт оригинальный видео файл по пути: {SelectedItem.ProcessedFilePath}");
             else
-                Log.Warning($"Открыт обработанный видео файл по пути: {SelectedItem.OriginalFilePath}");
+                Log.Debug($"Открыт обработанный видео файл по пути: {SelectedItem.OriginalFilePath}");
 
             IsUploadButtonEnabled = IsOriginalCurrentFileOpened;
             IsOriginalCurrentFileOpened = SelectedItem.IsOriginalFileOpened = !IsOriginalCurrentFileOpened;
@@ -268,6 +275,11 @@ public partial class MainPageViewModel : ObservableObject
         IsUploadButtonEnabled = false;
 
         IsConnected = await _netUtils.CheckServerConnection();
+
+        if (!await _netUtils.ResetTrackingParameters())
+        {
+            Log.Warning("Не удалось сбросить пареметры трекинга");
+        }
 
         interval = _configuration.RootSettings.API.FrameSendingDelay; // Вынести в navigatedto
 
